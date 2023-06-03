@@ -18,7 +18,9 @@ traffic=Enum('traffic',('act_store','act_fetch','comm','act_fd','grad_bd','wt_lo
 
 class Tile():# for compute process
     def __init__(self,tile_name='tx8',
-                 sram_size_MB=3,macs=4000,freq_GHz=1,opt=ML.OPTIMIZER) -> None:
+                 sram_size_MB=3,macs=4000,freq_GHz=1,\
+                 with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
+                    opt=ML.OPTIMIZER) -> None:
         #info
         self.tile_name=tile_name
 
@@ -29,8 +31,11 @@ class Tile():# for compute process
         self.opt_states_bytes=ML.BYTES['NONE'] if opt!=ML.OPTIMIZER.ADAM else 2*ML.BYTES['FP32']
         self.buffer_bytes=ML.BYTES['FP16']
 
-        #define buffer & sram size
+        #define buffer & sram size & dram_size
         self.sram_size=sram_size_MB
+        self.with_dram=with_dram
+        self.dram_bw=dram_bw_GB
+        self.dram_capacity=dram_capacity_GB
         self.ifmap_size=0
         self.weight_size=0
         self.ofmap_size=0
@@ -78,38 +83,6 @@ class Tile():# for compute process
             return T*math.ceil(SR/(R*PR))*math.ceil(SC/(C*SC))
         else :
             raise NotImplementedError
-         
-    def allocate_buffer_size(self,M,N,K,SR,SC,T,store_input_act_in_sram=False):
-        #o=w*i+b
-        buffer_sram=0
-        if self.dataflow==dataflow.IS:
-            self.ifmap=SC*T/1000/1000*self.buffer_bytes
-            self.weight=SR*T/1000/1000*self.buffer_bytes
-            self.ofmap=self.max_dim*SC/1000/1000*self.buffer_bytes# means output dim M<=max
-            if not store_input_act_in_sram:
-                buffer_sram=N*K/1000/1000*self.buffer_bytes-self.ofmap 
-        elif self.dataflow==dataflow.OS:
-            self.ifmap=SC*self.max_dim/1000/1000*self.buffer_bytes# means input dim K<=max
-            self.weight=SR*T/1000/1000*self.buffer_bytes
-            self.ofmap=SR*SC/1000/1000*self.buffer_bytes
-            buffer_sram=M*N/1000/1000*self.buffer_bytes-self.ifmap
-        elif self.dataflow==dataflow.WS:
-            self.ifmap=self.max_dim*T/1000/1000*self.buffer_bytes# means input dim N<=max
-            self.weight=SR*T/1000/1000*self.buffer_bytes
-            self.ofmap=SR*self.max_dim/1000/1000*self.buffer_bytes# means input dim N<=max
-            buffer_sram=M*N/1000/1000*self.buffer_bytes-self.ofmap
-            if not store_input_act_in_sram:
-                buffer_sram+=N*K/1000/1000*self.buffer_bytes-self.ifmap
-        else:
-            raise NotImplementedError
-        total_buffer_size_mb=self.ifmap+self.weight+self.ofmap
-        #print('total_buffer_size:{:.3f} M Byte'.format(total_buffer_size_mb))
-        #buffer不足需要借助SRAM一部分空间
-        if buffer_sram>0:
-            self.sram_res_buffer=self.sram-buffer_sram
-        return total_buffer_size_mb
-  
-
     #TODO 
     #each tile group may process one subgraph rather than one op
     #if there is one simple op，it is not nesscessary to use reccompute strategy
@@ -124,8 +97,8 @@ class Tile():# for compute process
         acc_op_output_act_size=0          # mbytes(op_list[-1].i_shape) no store
         df0=None
         ss1=None
-        rs2=recompute_strategy.none
-        total_sram_size=tile.sram_size
+        rs2=None
+
         [pipe_strategy,info1,info2]=stage_info
 
         #sram allocation for each op with parallism  and recompute strategy
@@ -142,20 +115,35 @@ class Tile():# for compute process
         elif pipe_strategy==ML.pipe_strategy.Megatron1F1B:
             #TODO 激活生存时长不完全相符
             act_times_coe=(info2-info1) #@fangjh21.20230602 
-        sram_occupy_by_weight_and_states=acc_op_weight_size*(tile.weight_bytes+tile.opt_states_bytes)
-        sram_occupy_by_act_with_stageflow=act_times_coe*(acc_op_input_act_size+acc_op_intra_act_size)*tile.act_bytes
-        if sram_occupy_by_act_with_stageflow+sram_occupy_by_weight_and_states<total_sram_size:
-            ss1=sram_strategy.ACT_weight
-            df0=dataflow.IS
-        elif sram_occupy_by_act_with_stageflow<total_sram_size:
-            ss1=sram_strategy.weight
-            df0=dataflow.IS
-        elif sram_occupy_by_weight_and_states<total_sram_size:
-            ss1=sram_strategy.ACT
-            df0=dataflow.WS
-        else:
+        mem_occupy_by_weight_and_states=acc_op_weight_size*(tile.weight_bytes+tile.opt_states_bytes)
+        mem_occupy_by_act_with_stageflow=act_times_coe*(acc_op_input_act_size+acc_op_intra_act_size)*tile.act_bytes
+        
+
+
+        if tile.with_dram:
+            assert(wd1.dram_per_tile_resource!=[])
+            total_mem_size=tile.dram_capacity #GB
             ss1=sram_strategy.cache
             df0=dataflow.OS
+            if mem_occupy_by_weight_and_states+mem_occupy_by_act_with_stageflow<total_mem_size:
+                rs2=recompute_strategy.all    
+            else:
+                #ss1=sram_strategy.cache
+                df0=dataflow.OS
+        else:
+            rs2=recompute_strategy.none
+            if mem_occupy_by_weight_and_states+mem_occupy_by_act_with_stageflow<total_mem_size:
+                ss1=sram_strategy.ACT_weight
+                df0=dataflow.IS
+            elif mem_occupy_by_act_with_stageflow<total_mem_size:
+                ss1=sram_strategy.weight
+                df0=dataflow.IS
+            elif mem_occupy_by_weight_and_states<total_mem_size:
+                ss1=sram_strategy.ACT
+                df0=dataflow.WS
+            else:
+                ss1=sram_strategy.cache
+                df0=dataflow.OS
 
         return [df0,ss1,rs2]
 

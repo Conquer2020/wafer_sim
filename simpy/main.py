@@ -13,8 +13,8 @@ if __name__ == '__main__':
     #define simpy environment
     env=simpy.Environment()
     #define hardware
-    tile=Tile()
-    wd=Wafer_Device(env,tile_inter_shape=[2,2],tile_intra_shape=[2,2])
+    tile=Tile(with_dram=True)
+    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[2,2],tile_intra_shape=[2,2])
     #print(wd.device_list())
     #define op and ML compute graph
 
@@ -42,9 +42,6 @@ if __name__ == '__main__':
     op4.dpmap(device_id=tiles_4,parallel_dim=[1])
     CompGraph.gwrite(gp,path='mljson',name='gh.json')
     #00
-
-
-
     stg0=pipe.Stage(tile,env,[op1],last_core_id=[],cur_core_id=tiles_1,next_core_id=tiles_2)
     stg1=pipe.Stage(tile,env,[op2],last_core_id=tiles_1,cur_core_id=tiles_2,next_core_id=tiles_3)
     stg2=pipe.Stage(tile,env,[op3],last_core_id=tiles_2,cur_core_id=tiles_3,next_core_id=tiles_4)
