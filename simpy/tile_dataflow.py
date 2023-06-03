@@ -93,17 +93,18 @@ class Tile():# for compute process
         device_gp=device
         acc_op_weight_size=0
         acc_op_intra_act_size=0
-        acc_op_input_act_size=mbytes(op_list[0].i_shape)
-        acc_op_output_act_size=0          # mbytes(op_list[-1].i_shape) no store
+        acc_op_input_act_size=0
+        #acc_op_output_act_size=0          # mbytes(op_list[-1].i_shape) no store
         df0=None
         ss1=None
         rs2=None
 
         [pipe_strategy,info1,info2]=stage_info
 
-        #sram allocation for each op with parallism  and recompute strategy
+        #dram/sram allocation for each op with parallism  and recompute strategy
         # @fangjh21.20230602
         for op in op_list:
+            acc_op_input_act_size+=mbytes(op.i_shape)
             acc_op_weight_size+=op.param_size_m
             acc_op_intra_act_size+=op.intra_act_size_m
             
@@ -115,21 +116,23 @@ class Tile():# for compute process
         elif pipe_strategy==ML.pipe_strategy.Megatron1F1B:
             #TODO 激活生存时长不完全相符
             act_times_coe=(info2-info1) #@fangjh21.20230602 
+        else:
+            raise NotImplementedError
         mem_occupy_by_weight_and_states=acc_op_weight_size*(tile.weight_bytes+tile.opt_states_bytes)
         mem_occupy_by_act_with_stageflow=act_times_coe*(acc_op_input_act_size+acc_op_intra_act_size)*tile.act_bytes
         
 
 
         if tile.with_dram:
+            #match dram setting
             assert(wd1.dram_per_tile_resource!=[])
             total_mem_size=tile.dram_capacity #GB
             ss1=sram_strategy.cache
-            df0=dataflow.OS
+            df0=dataflow.WS
             if mem_occupy_by_weight_and_states+mem_occupy_by_act_with_stageflow<total_mem_size:
-                rs2=recompute_strategy.all    
+                rs2=recompute_strategy.none   
             else:
-                #ss1=sram_strategy.cache
-                df0=dataflow.OS
+                rs2=recompute_strategy.all   
         else:
             rs2=recompute_strategy.none
             if mem_occupy_by_weight_and_states+mem_occupy_by_act_with_stageflow<total_mem_size:
