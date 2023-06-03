@@ -72,22 +72,18 @@ class Oppd(CompOp):
     def __init__(self,op_type:ML.OP,op_param:List[int],hint_name:str) -> None:
         super(Oppd,self).__init__(op_type,op_param)
         self.hint_name=hint_name
-        self.parallel_dim=[]
+        self.parallel_strategy=[]#[data,model]
         self.device=[]
-        self.comm_full=[]
+        self.comm_size=[]
         self.dpmap_flag=False
-    def dpmap(self,device_id:List[int],parallel_dim:Optional[List[int]]=None):
-        assert parallel_dim==None or len(parallel_dim)<=len(self.param_dim),'The number of parallel dimensions exceeds the op dim space!'
-        if (parallel_dim==None or []) and len(device_id)>1:
+    def dpmap(self,device_id:List[int],parallel_strategy:Optional[List[int]]=None):
+        assert parallel_strategy==None or len(parallel_strategy)==2,'The number of parallel dimensions exceeds the op dim space!'
+        if (parallel_strategy==None or parallel_strategy==[]):
             print('Warning:parallel dimension not specified as the number of device  more than one!')
-            self.parallel_dim=[0]
-            self.device=device_id
-        elif len(parallel_dim)>=len(device_id):
-            print('Warning:The number of parallel dimensions exceeds the device space!')
-            self.parallel_dim=parallel_dim[0:len(device_id)-1]
+            self.parallel_strategy=[1,len(device_id)]
             self.device=device_id
         else:
-            self.parallel_dim=parallel_dim
+            self.parallel_strategy=parallel_strategy
             self.device=device_id
         # TODO 完成并行通信算子的生成
         self.comm_insert()
@@ -95,17 +91,17 @@ class Oppd(CompOp):
         return True
     def comm_insert(self):
         #pass
-        self.comm_full.append(CommOp())#forward
-        self.comm_full.append(CommOp(ML.COMM.ALL_REDUCE,128))#backward
-        self.comm_full.append(CommOp(ML.COMM.ALL_2_ALL,128))#weight syn
-        #for comm in self.comm_full:
+        self.comm_size.append(CommOp())#forward
+        self.comm_size.append(CommOp(ML.COMM.ALL_REDUCE,128))#backward
+        self.comm_size.append(CommOp(ML.COMM.ALL_2_ALL,128))#weight syn
+        #for comm in self.comm_size:
         #    print(comm)
     def __str__(self):
         if self.dpmap_flag:
-            return '{}:(({},{}),parallel_dim={},device={})'.format(self.hint_name,self.type,self.param_dim,self.parallel_dim,self.device)
+            return '{}:(({},{}),parallel_strategy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.parallel_strategy,self.device)
         else:
             return '{}:({},{})'.format(self.hint_name,self.type,self.param_dim)
 if __name__ == '__main__':
     op1=Oppd(op_type=ML.OP.Linear,op_param=[1,128,128,512],hint_name='s0')
-    op1.dpmap(parallel_dim=[0,1],device_id=[0,1])
+    op1.dpmap(parallel_strategy=[0,1],device_id=[0,1])
     print(op1)

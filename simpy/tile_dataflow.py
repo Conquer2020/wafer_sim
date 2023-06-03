@@ -145,6 +145,7 @@ class Tile():# for compute process
                 ss1=sram_strategy.ACT
                 df0=dataflow.WS
             else:
+                rs2=recompute_strategy.all
                 ss1=sram_strategy.cache
                 df0=dataflow.OS
 
