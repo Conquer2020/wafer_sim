@@ -9,18 +9,22 @@ from wafer_device import Packet
 
 import ML
 from comp_graph import CompGraph,OpNode
+from op_pd import CommOp
 dataflow=Enum('dataflow',('IS','WS','OS'))
 
 comp_model=Enum('comp_model',('simple','SCALE_SIM'))
 sram_strategy=Enum('sram_strategy',('cache','weight','ACT','ACT_weight'))
+
 recompute_strategy=Enum('recompute_strategy',('none','half','all'))
+
+
 traffic=Enum('traffic',('act_store','act_fetch','comm','act_fd','grad_bd','wt_load','wt_store'))
 
 class Tile():# for compute process
     def __init__(self,tile_name='tx8',
                  sram_size_MB=3,macs=4000,freq_GHz=1,\
                  with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
-                    opt=ML.OPTIMIZER) -> None:
+                    opt=ML.OPTIMIZER,ZeRO=ML.ZeRO_strategy.none) -> None:
         #info
         self.tile_name=tile_name
 
@@ -51,6 +55,8 @@ class Tile():# for compute process
         self.freq=freq_GHz
         self.dataflow=dataflow.IS
         #self.tflops=self.macs*2*self.freq
+
+        self.ZeRO=ZeRO
 
     def __shape_suppose(self,size):
         R=0
@@ -96,9 +102,10 @@ class Tile():# for compute process
         acc_op_intra_act_size=0
         acc_op_input_act_size=0
         #acc_op_output_act_size=0          # mbytes(op_list[-1].i_shape) no store
-        df0=None
-        ss1=None
-        rs2=None
+        df0=dataflow.WS
+        ss1=sram_strategy.cache
+        rs2=recompute_strategy.none
+        zs3=ZeRO_strategy.none
 
         [pipe_strategy,info1,info2]=stage_info
 
@@ -152,6 +159,9 @@ class Tile():# for compute process
 
         return [df0,ss1,rs2]
 
+    @staticmethod
+    def execute_comm_process(tile,env,comm_op:CommOp,wd1:wd):
+        yield env.timeout(5)
     @staticmethod
     def execute_forward_process(tile,env,map_ana:list,device:List[int],op:OpNode,wd1:wd):
         yield env.timeout(5)

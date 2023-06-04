@@ -48,7 +48,7 @@ class CompGraph():
         #one op node in ML compute graph my have more than one parent node.
         #so when traverse graph,we have to avoid visit one node twice with 'isTraversed' flag
         #However, 'isTraversed' should be clear before next graph traverse
-        #TODO 遍历后isTraversed flag拉高,下次遍历前需要清除flag
+        #TODO 不灵活，遍历后isTraversed flag拉高,下次遍历前需要清除flag
         cur.isTraversed=True
         yield cur
         if cur.nxt_lt!=[]:

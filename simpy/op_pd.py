@@ -1,16 +1,16 @@
 import ML
 from util import *
-from typing import List,Optional
+from typing import List,Optional,Union
 class CompOp():
     def __init__(self,op_type:ML.OP,op_param:List[int],parallel_strategy:List[int]=[1,1]) -> None:
 
         #base info 
         self.type=op_type
         self.param_dim=op_param
+        self.p_sgy=parallel_strategy
+        self.ZeRO=ML.ZeRO_strategy.none
         self.o_shape=[]
         self.i_shape=[]
-        self.p_sgy=parallel_strategy
-
         #only for complex op like transformer @fangjh21.202306602
         #influenced by parallism strategy
         #capacity req
@@ -23,14 +23,15 @@ class CompOp():
         self.fd_macs=0  
   
         self.__analysis()
-
+    def __str__(self):
+        return '({},{})'.format(self.type,self.param_dim)
     def __analysis(self):
         if self.type==ML.OP.Linear:
             assert(len(self.param_dim)==4 and len(self.p_sgy)==4)#B,M,N,K
             [B,M,N,K]=self.param_dim
             [Nd,Nm1,Nm2,Nm3]=self.p_sgy
-            self.o_shape=[B/Nd,M/Nm1,N/Nm2] #[B,M,N]
-            self.i_shape=[B/Nd,N/Nm2,K/Nm3] #[B,K,N]  
+            self.o_shape=[B//Nd,M//Nm1,N//Nm2] #[B,M,N]
+            self.i_shape=[B//Nd,N//Nm2,K//Nm3] #[B,K,N]  
             
             #capacity req
             self.intra_act_size_m=0 
@@ -39,7 +40,7 @@ class CompOp():
             self.intra_act_access_m=0
             self.w_s_g_access_m=[0,0,0]
             #compute power req
-            self.fd_macs=B*M*N*K/Nd/Nm1/Nm2/Nm3  
+            self.fd_macs=B*M*N*K/Nd/Nm1/Nm2/Nm3
         elif self.type==ML.OP.Conv2:
             #TODO
             assert(len(self.param_dim)==7)#B,C,H,W,R,S,K
@@ -61,18 +62,33 @@ class CompOp():
             assert(len(self.param_dim)==4 and len(self.p_sgy)==2)
             [B,S,H,A]=self.param_dim
             [Nd,Nm]=self.p_sgy
-            self.o_shape=[B,S,H]
-            self.i_shape=[B,S,H]  
+            self.o_shape=[B//Nd,S,H]
+            self.i_shape=[B//Nd,S,H]  
 
             #reference:Wang huizheng's
-            #capacity req
-            self.w_s_g_size_m=[12*H*H/Nm,3*12*H*H/Nm/Nd,12*H*H/Nm]
+            if self.ZeRO==ML.ZeRO_strategy.ZeRO_3:
+                w=12*H*H/Nm/Nd
+                w_c=12*H*H/Nm #TODO
+            else:
+                w=12*H*H/Nm
+                w_c=12*H*H/Nm #TODO
+            if self.ZeRO!=ML.ZeRO_strategy.none:
+                s=3*12*H*H/Nm/Nd
+                s_c=3*12*H*H/Nm/Nd 
+            else:
+                s=3*12*H*H/Nm
+                s_c=3*12*H*H/Nm #TODO
+            if self.ZeRO==ML.ZeRO_strategy.ZeRO_3 or self.ZeRO==ML.ZeRO_strategy.ZeRO_2 :
+                g=12*H*H/Nm/Nd
+                g_c=12*H*H/Nm #TODO
+            else:
+                g=12*H*H/Nm
+                g_c=12*H*H/Nm #TODO
+            self.w_s_g_size_m=[w,s,g]#capacity req
+            self.w_s_g_access_m=[w_c,s_c,g_c]#bandwidth req
             self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd
-            #bandwidth req
-            self.w_s_g_access_m=[12*H*H/Nm,3*12*H*H/Nm/Nd,12*H*H/Nm]
-            self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd
-            #compute power req
-            self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm
+            self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd#bandwidth req
+            self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm#compute power req
   
         elif self.type==ML.OP.Embedding:
             #TODO
@@ -86,12 +102,16 @@ class CompOp():
             self.i_shape=0 
             self.fd_macs=0
             raise NotImplementedError
-    def __str__(self):
-        return '({},{})'.format(self.type,self.param_dim)
+    def set_ZeRO(self,ZeRO):
+        self.ZeRO=ZeRO
+        self.__analysis()
+
 class CommOp():
-    def __init__(self,comm_type:ML.COMM=ML.COMM.NONE,comm_size=0) -> None:
+    def __init__(self,device_id:Optional[List[int]]=None,comm_type:ML.COMM=ML.COMM.NONE,comm_size=0) -> None:
         self.type=comm_type
         self.size=comm_size
+        self.device=device_id
+
         self.__analysis()
     def __analysis(self):
         assert(self.type==ML.COMM.NONE or self.type==ML.COMM.ALL_REDUCE or self.type==ML.COMM.ALL_2_ALL)
@@ -107,12 +127,14 @@ class Oppd(CompOp):
         super(Oppd,self).__init__(op_type,op_param)
         self.hint_name=hint_name
         self.device=[]
-        self.comm=[]
+        #parallism_dim:forward(f):(comm_type,comm_size_MB),backward(b):updata_weight(u):
+        self.f_b_u_comm=[[(0,0),(0,0),(0,0)]]
+        self.ZeRO_comm=[] #forward all-gather,backward all-gather
         self.dpmap_flag=False
     def dpmap(self,device_id:List[int],parallel_strategy:Optional[List[int]]=None):
-        assert parallel_strategy==None or len(parallel_strategy)>=2,'The number of parallel dimensions exceeds the op dim space!'
+        assert parallel_strategy==None or len(parallel_strategy)<=4,'The number of parallel dimensions exceeds the op dim space!'
         if (parallel_strategy==None or parallel_strategy==[]):
-            print('Warning:parallel dimension not specified as the number of device  more than one!')
+            #print('Warning:parallel dimension not specified as the number of device  more than one!')
             self.p_sgy=[1,len(device_id)]
             self.device=device_id
         else:
@@ -126,11 +148,13 @@ class Oppd(CompOp):
     def comm_insert(self):
         #pass
         self.__analysis()
-        self.comm.append(CommOp())#forward
-        self.comm.append(CommOp(ML.COMM.ALL_REDUCE,128))#backward
-        self.comm.append(CommOp(ML.COMM.ALL_2_ALL,128))#weight syn
-        #for comm in self.comm_size:
-        #    print(comm)
+        if self.type==ML.OP.Transformer:
+            [Nd,Nm]=self.p_sgy
+            comm_info=[]
+            comm_info.append(CommOp())#forward
+            comm_info.append(CommOp(ML.COMM.ALL_REDUCE,128))#backward
+            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,128))#weight syn
+            self.f_b_u_comm.append(comm_info)
     def __str__(self):
         if self.dpmap_flag:
             return '{}:(({},{}),parallel_strategy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.parallel_strategy,self.device)
