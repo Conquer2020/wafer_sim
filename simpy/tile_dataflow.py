@@ -27,6 +27,7 @@ class Tile():# for compute process
         # define store byte
         self.act_bytes=ML.BYTES['FP16'] if opt!=ML.OPTIMIZER.NONE else ML.BYTES['NONE']
         self.weight_bytes=ML.BYTES['FP16']#+ML.BYTES['FP32']
+        self.grad_bytes=ML.BYTES['FP16']#+ML.BYTES['FP32']
         # @fangjh21.20230602:weight with FP32 stored in DRAM and loaded on sram just when w(FP32)+dw(FP16)
         self.opt_states_bytes=ML.BYTES['NONE'] if opt!=ML.OPTIMIZER.ADAM else 2*ML.BYTES['FP32']
         self.buffer_bytes=ML.BYTES['FP16']
