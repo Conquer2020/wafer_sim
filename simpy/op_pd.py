@@ -3,7 +3,6 @@ from util import *
 from typing import List,Optional,Union
 class CompOp():
     def __init__(self,op_type:ML.OP,op_param:List[int],parallel_strategy:List[int]=[1,1]) -> None:
-
         #base info 
         self.type=op_type
         self.param_dim=op_param
@@ -111,7 +110,6 @@ class CommOp():
         self.type=comm_type
         self.size=comm_size
         self.device=device_id
-
         self.__analysis()
     def __analysis(self):
         assert(self.type==ML.COMM.NONE or self.type==ML.COMM.ALL_REDUCE or self.type==ML.COMM.ALL_2_ALL)
@@ -128,8 +126,10 @@ class Oppd(CompOp):
         self.hint_name=hint_name
         self.device=[]
         #parallism_dim:forward(f):(comm_type,comm_size_MB),backward(b):updata_weight(u):
-        self.f_b_u_comm=[[(0,0),(0,0),(0,0)]]
-        self.ZeRO_comm=[] #forward all-gather,backward all-gather
+        #here is a fact that communication caused by data parallelism only happens on weight update phase,
+        #similarly,communication caused by model parallelism only happens on forward and backward phase
+        self.f_b_u_comm=[0,0,0]
+        self.ZeRO_comm=[0,0] #forward all-gather,backward all-gather
         self.dpmap_flag=False
     def dpmap(self,device_id:List[int],parallel_strategy:Optional[List[int]]=None):
         assert parallel_strategy==None or len(parallel_strategy)<=4,'The number of parallel dimensions exceeds the op dim space!'
@@ -149,11 +149,16 @@ class Oppd(CompOp):
         #pass
         self.__analysis()
         if self.type==ML.OP.Transformer:
+            [B,S,H,A]=self.param_dim
             [Nd,Nm]=self.p_sgy
+
+            #Nd:
+            Nd_Group=self.device[::Nm]
+            Nm_Group=[]
             comm_info=[]
-            comm_info.append(CommOp())#forward
-            comm_info.append(CommOp(ML.COMM.ALL_REDUCE,128))#backward
-            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,128))#weight syn
+            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,self.w_s_g_size_m[0]))#forward
+            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,self.w_s_g_size_m[0]))#backward
+            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,self.w_s_g_size_m[0]))#weight update
             self.f_b_u_comm.append(comm_info)
     def __str__(self):
         if self.dpmap_flag:

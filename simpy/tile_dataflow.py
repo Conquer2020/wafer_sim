@@ -14,10 +14,7 @@ dataflow=Enum('dataflow',('IS','WS','OS'))
 
 comp_model=Enum('comp_model',('simple','SCALE_SIM'))
 sram_strategy=Enum('sram_strategy',('cache','weight','ACT','ACT_weight'))
-
 recompute_strategy=Enum('recompute_strategy',('none','half','all'))
-
-
 traffic=Enum('traffic',('act_store','act_fetch','comm','act_fd','grad_bd','wt_load','wt_store'))
 
 class Tile():# for compute process
@@ -32,8 +29,7 @@ class Tile():# for compute process
         self.act_bytes=ML.BYTES['FP16'] if opt!=ML.OPTIMIZER.NONE else ML.BYTES['NONE']
         self.weight_bytes=ML.BYTES['FP16']#+ML.BYTES['FP32']
         self.grad_bytes=ML.BYTES['FP16']#+ML.BYTES['FP32']
-        # @fangjh21.20230602:weight with FP32 stored in DRAM and loaded on sram just when w(FP32)+dw(FP16)
-        self.opt_states_bytes=ML.BYTES['NONE'] if opt!=ML.OPTIMIZER.ADAM else 2*ML.BYTES['FP32']
+        self.opt_states_bytes=ML.BYTES['NONE'] if opt!=ML.OPTIMIZER.ADAM else 3*ML.BYTES['FP32']
         self.buffer_bytes=ML.BYTES['FP16']
 
         #define buffer & sram size & dram_size
@@ -105,7 +101,7 @@ class Tile():# for compute process
         df0=dataflow.WS
         ss1=sram_strategy.cache
         rs2=recompute_strategy.none
-        zs3=ZeRO_strategy.none
+        zs3=ML.ZeRO_strategy.none
 
         [pipe_strategy,info1,info2]=stage_info
 
