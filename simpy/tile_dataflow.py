@@ -11,7 +11,6 @@ import ML
 from comp_graph import CompGraph,OpNode
 from op_pd import CommOp
 dataflow=Enum('dataflow',('IS','WS','OS'))
-
 comp_model=Enum('comp_model',('simple','SCALE_SIM'))
 sram_strategy=Enum('sram_strategy',('cache','weight','ACT','ACT_weight'))
 recompute_strategy=Enum('recompute_strategy',('none','half','all'))
@@ -125,8 +124,6 @@ class Tile():# for compute process
         mem_occupy_by_weight_and_states=acc_op_weight_size*(tile.weight_bytes+tile.opt_states_bytes)
         mem_occupy_by_act_with_stageflow=act_times_coe*(acc_op_input_act_size+acc_op_intra_act_size)*tile.act_bytes
         
-
-
         if tile.with_dram:
             #match dram setting
             assert(wd1.dram_per_tile_resource!=[])
@@ -153,7 +150,6 @@ class Tile():# for compute process
                 rs2=recompute_strategy.all
                 ss1=sram_strategy.cache
                 df0=dataflow.OS
-
         return [df0,ss1,rs2]
 
     @staticmethod

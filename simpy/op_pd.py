@@ -1,6 +1,7 @@
 import ML
 from util import *
 from typing import List,Optional,Union
+import numpy as np
 class CompOp():
     def __init__(self,op_type:ML.OP,op_param:List[int],parallel_strategy:List[int]=[1,1]) -> None:
         #base info 
@@ -10,7 +11,8 @@ class CompOp():
         self.ZeRO=ML.ZeRO_strategy.none
         self.o_shape=[]
         self.i_shape=[]
-        #only for complex op like transformer @fangjh21.202306602
+
+        #for complex op like transformer @fangjh21.202306602
         #influenced by parallism strategy
         #capacity req
         self.intra_act_size_m=0 
@@ -66,27 +68,26 @@ class CompOp():
             self.o_shape=[B//Nd,S,H]
             self.i_shape=[B//Nd,S,H]  
 
+            w_s_g=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])
+            zero_w_s_g=np.array([1,1,1])
+            w_s_g_access=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])
+            zero_w_s_g_access=np.array([1,1,1])
             #reference:Wang huizheng's
             if self.ZeRO==ML.ZeRO_strategy.ZeRO_3:
-                w=12*H*H/Nm/Nd
-                w_c=12*H*H/Nm #TODO
-            else:
-                w=12*H*H/Nm
-                w_c=12*H*H/Nm #TODO
-            if self.ZeRO!=ML.ZeRO_strategy.none:
-                s=3*12*H*H/Nm/Nd
-                s_c=3*12*H*H/Nm/Nd 
-            else:
-                s=3*12*H*H/Nm
-                s_c=3*12*H*H/Nm #TODO
-            if self.ZeRO==ML.ZeRO_strategy.ZeRO_3 or self.ZeRO==ML.ZeRO_strategy.ZeRO_2 :
-                g=12*H*H/Nm/Nd
-                g_c=12*H*H/Nm #TODO
-            else:
-                g=12*H*H/Nm
-                g_c=12*H*H/Nm #TODO
-            self.w_s_g_size_m=[w,s,g]#capacity req
-            self.w_s_g_access_m=[w_c,s_c,g_c]#bandwidth req
+                zero_w_s_g_access=np.array([1/Nd,1/Nd,1/Nd])
+                zero_w_s_g=np.array([1/Nd,1/Nd,1/Nd])
+            elif self.ZeRO==ML.ZeRO_strategy.ZeRO_2:
+                zero_w_s_g_access=np.array([1,1/Nd,1/Nd])
+                zero_w_s_g=np.array([1,1/Nd,1/Nd])
+            elif self.ZeRO==ML.ZeRO_strategy.ZeRO_1:
+                zero_w_s_g_access=np.array([1,1/Nd,1])
+                zero_w_s_g=np.array([1,1/Nd,1])
+            elif self.ZeRO==ML.ZeRO_strategy.none:
+                zero_w_s_g_access=np.array([1,1,1])
+                zero_w_s_g=np.array([1,1,1])
+            self.w_s_g_size_m=(w_s_g*zero_w_s_g).tolist()#capacity req
+            self.w_s_g_access_m=(w_s_g_access*zero_w_s_g_access).tolist()#bandwidth req
+
             self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd
             self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd#bandwidth req
             self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm#compute power req
