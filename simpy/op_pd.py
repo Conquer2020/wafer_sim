@@ -76,18 +76,24 @@ class CompOp():
             if self.ZeRO==ML.ZeRO_strategy.ZeRO_3:
                 zero_w_s_g_access=np.array([1/Nd,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1/Nd,1/Nd,1/Nd])
+                self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
             elif self.ZeRO==ML.ZeRO_strategy.ZeRO_2:
                 zero_w_s_g_access=np.array([1,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1,1/Nd,1/Nd])
+                self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
             elif self.ZeRO==ML.ZeRO_strategy.ZeRO_1:
                 zero_w_s_g_access=np.array([1,1/Nd,1])
                 zero_w_s_g=np.array([1,1/Nd,1])
+                self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
             elif self.ZeRO==ML.ZeRO_strategy.none:
                 zero_w_s_g_access=np.array([1,1,1])
                 zero_w_s_g=np.array([1,1,1])
+                self.ZeRO_comm=[0,0]
             self.w_s_g_size_m=(w_s_g*zero_w_s_g).tolist()#capacity req
             self.w_s_g_access_m=(w_s_g_access*zero_w_s_g_access).tolist()#bandwidth req
 
+
+            self.f_b_u_comm=[2*2*2*12*B*S*H/Nd,2*2*2*12*B*S*H/Nd,2*2*12*H*H/Nm]
             self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd
             self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd#bandwidth req
             self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm#compute power req
@@ -150,18 +156,24 @@ class Oppd(CompOp):
         return True
     def comm_insert(self):
         #pass
+        self.f_b_u_comm_d=[]
+        self.ZeRO_comm_d=[]
         self.__analysis()
         if self.type==ML.OP.Transformer:
-            [B,S,H,A]=self.param_dim
             [Nd,Nm]=self.p_sgy
             #Nd*Nm=device_num
-            Nd_Group=[self.device[::Nm]]
-            Nm_Group=[self.device[i:i+Nm-1] for i in range(Nm)]
+            L=self.device
+            Nd_Group=[L[i::Nm] for i in range(Nm)]
+            Nm_Group= [L[i*Nm:(i+1)*Nm:] for i in range(Nd)]
             comm_info=[]
             comm_info.append(CommOp(Nm_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[0]))#forward
             comm_info.append(CommOp(Nm_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[1]))#backward
             comm_info.append(CommOp(Nd_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[2]))#weight update
-            self.f_b_u_comm_d=comm_info
+            self.f_b_u_comm_d=comm_info  
+
+            self.ZeRO_comm_d.append(CommOp(Nd_Group,ML.COMM.ALL_2_ALL,self.ZeRO_comm[0]))
+            self.ZeRO_comm_d.append(CommOp(Nd_Group,ML.COMM.ALL_2_ALL,self.ZeRO_comm[1]))
+
     def __str__(self):
         if self.dpmap_flag:
             return '{}:(({},{}),parallel_strategy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.parallel_strategy,self.device)
