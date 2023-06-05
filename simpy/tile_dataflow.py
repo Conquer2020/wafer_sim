@@ -7,29 +7,24 @@ from wafer_device import Wafer_Device as wd
 from wafer_device import Packet
 
 
-import ML
+from ML import *
 from comp_graph import CompGraph,OpNode
 from op_pd import CommOp
-dataflow=Enum('dataflow',('IS','WS','OS'))
-comp_model=Enum('comp_model',('simple','SCALE_SIM'))
-sram_strategy=Enum('sram_strategy',('cache','weight','ACT','ACT_weight'))
-recompute_strategy=Enum('recompute_strategy',('none','half','all'))
-traffic=Enum('traffic',('act_store','act_fetch','comm','act_fd','grad_bd','wt_load','wt_store'))
 
 class Tile():# for compute process
     def __init__(self,tile_name='tx8',
                  sram_capacity_MB=3,macs=4000,freq_GHz=1,\
                  with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
-                    opt=ML.OPTIMIZER,ZeRO=ML.ZeRO_strategy.none) -> None:
+                    opt=OPTIMIZER,ZeRO=ZeRO_strategy.none) -> None:
         #info
         self.tile_name=tile_name
 
         # define store byte
-        self.act_bytes=ML.BYTES['FP16'] if opt!=ML.OPTIMIZER.NONE else ML.BYTES['NONE']
-        self.weight_bytes=ML.BYTES['FP16']#+ML.BYTES['FP32']
-        self.grad_bytes=ML.BYTES['FP16']#+ML.BYTES['FP32']
-        self.opt_states_bytes=ML.BYTES['NONE'] if opt!=ML.OPTIMIZER.ADAM else 3*ML.BYTES['FP32']
-        self.buffer_bytes=ML.BYTES['FP16']
+        self.act_bytes=BYTES['FP16'] if opt!=OPTIMIZER.NONE else BYTES['NONE']
+        self.weight_bytes=BYTES['FP16']#+BYTES['FP32']
+        self.grad_bytes=BYTES['FP16']#+BYTES['FP32']
+        self.opt_states_bytes=BYTES['NONE'] if opt!=OPTIMIZER.ADAM else 3*BYTES['FP32']
+        self.buffer_bytes=BYTES['FP16']
 
         #define buffer & sram size & dram_size
         self.sram_capacity=sram_capacity_MB
@@ -43,7 +38,7 @@ class Tile():# for compute process
 
         #define compute 
         self.macs=macs
-        self.cp_byte=ML.BYTES['FP16']
+        self.cp_byte=BYTES['FP16']
         self.array_group=[2,2]
         self.array_shape=self.__shape_suppose(self.macs)
         self.cp_model=comp_model.SCALE_SIM
@@ -100,7 +95,7 @@ class Tile():# for compute process
         df0=dataflow.WS
         ss1=sram_strategy.cache
         rs2=recompute_strategy.none
-        zs3=ML.ZeRO_strategy.none
+        zs3=ZeRO_strategy.none
 
         [pipe_strategy,info1,info2]=stage_info
 
@@ -112,11 +107,11 @@ class Tile():# for compute process
             acc_op_intra_act_size+=op.intra_act_size_m
             
         act_times_coe=0
-        if pipe_strategy==ML.pipe_strategy.GPipe:
+        if pipe_strategy==pipe_strategy.GPipe:
             act_times_coe=info1
-        elif pipe_strategy==ML.pipe_strategy.Cerebras:
+        elif pipe_strategy==pipe_strategy.Cerebras:
             act_times_coe=2*(info2-info1)
-        elif pipe_strategy==ML.pipe_strategy.Megatron1F1B:
+        elif pipe_strategy==pipe_strategy.Megatron1F1B:
             #TODO 激活生存时长不完全相符
             act_times_coe=(info2-info1) #@fangjh21.20230602 
         else:
@@ -154,6 +149,20 @@ class Tile():# for compute process
 
     @staticmethod
     def execute_comm_process(tile,env,comm_op:CommOp,wd1:wd):
+        if comm_op.type==COMM.ALL_REDUCE:
+            pass
+
+
+
+
+
+
+
+
+
+
+
+
         yield env.timeout(5)
     @staticmethod
     def execute_forward_process(tile,env,map_ana:list,device:List[int],op:OpNode,wd1:wd):

@@ -4,7 +4,7 @@ from tile_dataflow import Tile
 from comp_graph import CompGraph,OpNode
 import pipeline as pipe
 
-import ML
+from ML import *
 
 import simpy
 import time
@@ -20,10 +20,10 @@ if __name__ == '__main__':
 
     #TODO stages,device_group=map(graph,device)
     batch_size=4
-    op1=OpNode(op_type=ML.OP.Linear,op_param=[batch_size,256,128,512],hint_name='s1')
-    op2=OpNode(op_type=ML.OP.Linear,op_param=[batch_size,64,256,128],hint_name='s2')
-    op3=OpNode(op_type=ML.OP.Linear,op_param=[batch_size,128,64,256],hint_name='s3')
-    op4=OpNode(op_type=ML.OP.Linear,op_param=[batch_size,1024,128,64],hint_name='s4')
+    op1=OpNode(op_type=OP.Linear,op_param=[batch_size,256,128,512],hint_name='s1')
+    op2=OpNode(op_type=OP.Linear,op_param=[batch_size,64,256,128],hint_name='s2')
+    op3=OpNode(op_type=OP.Linear,op_param=[batch_size,128,64,256],hint_name='s3')
+    op4=OpNode(op_type=OP.Linear,op_param=[batch_size,1024,128,64],hint_name='s4')
     gp=CompGraph()
     gp.AddEdge(op1)
     gp.AddEdge(op2)

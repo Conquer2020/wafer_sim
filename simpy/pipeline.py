@@ -6,7 +6,7 @@ from util import *
 from tile_dataflow import Tile
 from wafer_device import Wafer_Device as wd
 from wafer_device import Packet
-import ML
+from ML import *
 #TODO 修改流水线调度策略
 # reference:Megatron2.0 
 # @fangjh21.20230602
@@ -82,7 +82,7 @@ class Stage():
                 yield last_q.put(Packet('',self.i_shape))
                 break
 class Stages():
-    def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],noc:wd,pipe_type=ML.pipe_strategy.Megatron1F1B) -> None:
+    def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],noc:wd,pipe_type=pipe_strategy.Megatron1F1B) -> None:
         self.env=env
         self.stages=stages
         self.pipe_type=pipe_type
@@ -98,11 +98,11 @@ class Stages():
         #TODO 需要检查device 在stage段无重复，否则映射不符合流水规则
         stages_len=len(self.stages)
         for i in range(stages_len):
-            if self.pipe_type==ML.pipe_strategy.GPipe:
+            if self.pipe_type==pipe_strategy.GPipe:
                 self.stages[i].stage_info=[self.pipe_type,self.mini_batch,self.micro_batch]
-            elif self.pipe_type==ML.pipe_strategy.Megatron1F1B:
+            elif self.pipe_type==pipe_strategy.Megatron1F1B:
                 self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
-            elif self.pipe_type==ML.pipe_strategy.Cerebras:
+            elif self.pipe_type==pipe_strategy.Cerebras:
                 self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
             else:
                 raise NotImplementedError

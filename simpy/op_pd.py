@@ -1,14 +1,14 @@
-import ML
+from ML import *
 from util import *
 from typing import List,Optional,Union
 import numpy as np
 class CompOp():
-    def __init__(self,op_type:ML.OP,op_param:List[int],parallel_strategy:List[int]=[1,1]) -> None:
+    def __init__(self,op_type:OP,op_param:List[int],parallel_strategy:List[int]=[1,1]) -> None:
         #base info 
         self.type=op_type
         self.param_dim=op_param
         self.p_sgy=parallel_strategy
-        self.ZeRO=ML.ZeRO_strategy.none
+        self.ZeRO=ZeRO_strategy.none
         self.o_shape=[]
         self.i_shape=[]
 
@@ -29,7 +29,7 @@ class CompOp():
     def __str__(self):
         return '({},{})'.format(self.type,self.param_dim)
     def __analysis(self):
-        if self.type==ML.OP.Linear:
+        if self.type==OP.Linear:
             assert(len(self.param_dim)==4 and len(self.p_sgy)==4)#B,M,N,K
             [B,M,N,K]=self.param_dim
             [Nd,Nm1,Nm2,Nm3]=self.p_sgy
@@ -44,7 +44,7 @@ class CompOp():
             self.w_s_g_access_m=[0,0,0]
             #compute power req
             self.fd_macs=B*M*N*K/Nd/Nm1/Nm2/Nm3
-        elif self.type==ML.OP.Conv2:
+        elif self.type==OP.Conv2:
             #TODO
             assert(len(self.param_dim)==7)#B,C,H,W,R,S,K
             [B,C,H,W,R,S,K]=self.param_dim
@@ -60,7 +60,7 @@ class CompOp():
             self.w_s_g_access_m=[0,0,0]
             #compute power req
             self.fd_macs=C*R*S*o_h*o_w*K
-        elif self.type==ML.OP.Transformer:
+        elif self.type==OP.Transformer:
             #TODO for verification with hand analysis
             assert(len(self.param_dim)==4 and len(self.p_sgy)==2)
             [B,S,H,A]=self.param_dim
@@ -73,19 +73,19 @@ class CompOp():
             w_s_g_access=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])
             zero_w_s_g_access=np.array([1,1,1])
             #reference:Wang huizheng's
-            if self.ZeRO==ML.ZeRO_strategy.ZeRO_3:
+            if self.ZeRO==ZeRO_strategy.ZeRO_3:
                 zero_w_s_g_access=np.array([1/Nd,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1/Nd,1/Nd,1/Nd])
                 self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
-            elif self.ZeRO==ML.ZeRO_strategy.ZeRO_2:
+            elif self.ZeRO==ZeRO_strategy.ZeRO_2:
                 zero_w_s_g_access=np.array([1,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1,1/Nd,1/Nd])
                 self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
-            elif self.ZeRO==ML.ZeRO_strategy.ZeRO_1:
+            elif self.ZeRO==ZeRO_strategy.ZeRO_1:
                 zero_w_s_g_access=np.array([1,1/Nd,1])
                 zero_w_s_g=np.array([1,1/Nd,1])
                 self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
-            elif self.ZeRO==ML.ZeRO_strategy.none:
+            elif self.ZeRO==ZeRO_strategy.none:
                 zero_w_s_g_access=np.array([1,1,1])
                 zero_w_s_g=np.array([1,1,1])
                 self.ZeRO_comm=[0,0]
@@ -96,7 +96,7 @@ class CompOp():
             self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd#bandwidth req
             self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm#compute power req
   
-        elif self.type==ML.OP.Embedding:
+        elif self.type==OP.Embedding:
             #TODO
             assert(len(self.param_dim)==4)
             self.o_shape=0 
@@ -113,22 +113,22 @@ class CompOp():
         self.__analysis()
 
 class CommOp():
-    def __init__(self,device_group:Optional[List[int]]=None,comm_type:ML.COMM=ML.COMM.NONE,comm_size=0) -> None:
+    def __init__(self,device_group:Optional[List[int]]=None,comm_type:COMM=COMM.NONE,comm_size=0) -> None:
         self.type=comm_type
         self.size=comm_size
         self.device_group=device_group
         self.__analysis()
     def __analysis(self):
-        assert(self.type==ML.COMM.NONE or self.type==ML.COMM.ALL_REDUCE or self.type==ML.COMM.ALL_2_ALL)
+        assert(self.type==COMM.NONE or self.type==COMM.ALL_REDUCE or self.type==COMM.ALL_2_ALL)
     def __str__(self) -> str:
         return '({},{})'.format(self.type,self.size)
     def No_comm(self):
-        if self.type==ML.COMM.NONE or self.size==0:
+        if self.type==COMM.NONE or self.size==0:
             return True
         else:
             return False       
 class Oppd(CompOp):
-    def __init__(self,op_type:ML.OP,op_param:List[int],hint_name:str) -> None:
+    def __init__(self,op_type:OP,op_param:List[int],hint_name:str) -> None:
         super(Oppd,self).__init__(op_type,op_param)
         self.hint_name=hint_name
         self.device=[]
@@ -157,20 +157,20 @@ class Oppd(CompOp):
         self.f_b_u_comm_d=[]
         self.ZeRO_comm_d=[]
         self.__analysis()
-        if self.type==ML.OP.Transformer:
+        if self.type==OP.Transformer:
             [Nd,Nm]=self.p_sgy
             #Nd*Nm=device_num
             L=self.device
             Nd_Group=[L[i::Nm] for i in range(Nm)]
             Nm_Group= [L[i*Nm:(i+1)*Nm:] for i in range(Nd)]
             comm_info=[]
-            comm_info.append(CommOp(Nm_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[0]))#forward
-            comm_info.append(CommOp(Nm_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[1]))#backward
-            comm_info.append(CommOp(Nd_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[2]))#weight update
+            comm_info.append(CommOp(Nm_Group,COMM.ALL_REDUCE,self.f_b_u_comm[0]))#forward
+            comm_info.append(CommOp(Nm_Group,COMM.ALL_REDUCE,self.f_b_u_comm[1]))#backward
+            comm_info.append(CommOp(Nd_Group,COMM.ALL_REDUCE,self.f_b_u_comm[2]))#weight update
             self.f_b_u_comm_d=comm_info  
 
-            self.ZeRO_comm_d.append(CommOp(Nd_Group,ML.COMM.ALL_2_ALL,self.ZeRO_comm[0]))
-            self.ZeRO_comm_d.append(CommOp(Nd_Group,ML.COMM.ALL_2_ALL,self.ZeRO_comm[1]))
+            self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[0]))
+            self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[1]))
 
     def __str__(self):
         if self.dpmap_flag:
@@ -178,6 +178,6 @@ class Oppd(CompOp):
         else:
             return '{}:({},{})'.format(self.hint_name,self.type,self.param_dim)
 if __name__ == '__main__':
-    op1=Oppd(op_type=ML.OP.Linear,op_param=[1,128,128,512],hint_name='s0')
+    op1=Oppd(op_type=OP.Linear,op_param=[1,128,128,512],hint_name='s0')
     op1.dpmap(parallel_strategy=[0,1],device_id=[0,1])
     print(op1)

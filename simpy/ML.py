@@ -3,6 +3,11 @@ from  util import BaseEnum as Enum
 #定义枚举类
 OP = Enum('OP', ('Linear', 'Conv2', 'Embedding', 'Softmax','LayerNorm','Transformer'))
 COMM=Enum('COMM',('NONE','ALL_REDUCE','ALL_2_ALL'))
+dataflow=Enum('dataflow',('IS','WS','OS'))
+comp_model=Enum('comp_model',('simple','SCALE_SIM'))
+sram_strategy=Enum('sram_strategy',('cache','weight','ACT','ACT_weight'))
+recompute_strategy=Enum('recompute_strategy',('none','half','all'))
+traffic=Enum('traffic',('act_store','act_fetch','comm','act_fd','grad_bd','wt_load','wt_store'))
 OPTIMIZER=Enum('OPTIMIZER',('NONE','SGD','ADAM'))
 BYTES={'NONE':0,'INT8':1,'FP16':2,'TF32':2.375,'FP32':4}
 pipe_strategy=Enum('pipe_strategy',('GPipe','Megatron1F1B','Interleaved1F1B','Cerebras'))

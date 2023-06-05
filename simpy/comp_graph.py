@@ -1,5 +1,4 @@
-import ML
-
+from ML import *
 import os
 import json
 from typing import List,Optional
@@ -8,7 +7,7 @@ from util import *
 
 
 class OpNode(Oppd):
-    def __init__(self, op_type:ML.OP, op_param: List[int], hint_name: str) -> None:
+    def __init__(self, op_type:OP, op_param: List[int], hint_name: str) -> None:
         super().__init__(op_type, op_param, hint_name)
         self.nxt_lt=[]
         self.isTraversed=False
@@ -123,7 +122,7 @@ class CompGraph():
                 op_device=None
                 for op_key in op_dict:
                     if op_key=='type':
-                        op_type=ML.str2openum(op_dict[op_key])
+                        op_type=str2openum(op_dict[op_key])
                     elif op_key=='param_dim':
                         op_param=str2list(op_dict[op_key])
                     elif op_key=='child_nodes':
@@ -158,10 +157,10 @@ class CompGraph():
 if __name__ == '__main__':
 
     #define compute graph 
-    op1=OpNode(op_type=ML.OP.Linear,op_param=[1,128,128,512],hint_name='s1')
-    op2=OpNode(op_type=ML.OP.Linear,op_param=[1,64,64,512],hint_name='s2')
-    op3=OpNode(op_type=ML.OP.Linear,op_param=[1,128,64,512],hint_name='s3')
-    op4=OpNode(op_type=ML.OP.Linear,op_param=[1,64,64,512],hint_name='s4')
+    op1=OpNode(op_type=OP.Linear,op_param=[1,128,128,512],hint_name='s1')
+    op2=OpNode(op_type=OP.Linear,op_param=[1,64,64,512],hint_name='s2')
+    op3=OpNode(op_type=OP.Linear,op_param=[1,128,64,512],hint_name='s3')
+    op4=OpNode(op_type=OP.Linear,op_param=[1,64,64,512],hint_name='s4')
     gp=CompGraph()
     gp.AddEdge(op1)
     gp.AddEdge(op2)
