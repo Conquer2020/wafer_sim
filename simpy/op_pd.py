@@ -91,9 +91,7 @@ class CompOp():
                 self.ZeRO_comm=[0,0]
             self.w_s_g_size_m=(w_s_g*zero_w_s_g).tolist()#capacity req
             self.w_s_g_access_m=(w_s_g_access*zero_w_s_g_access).tolist()#bandwidth req
-
-
-            self.f_b_u_comm=[2*2*2*12*B*S*H/Nd,2*2*2*12*B*S*H/Nd,2*2*12*H*H/Nm]
+            self.f_b_u_comm=[2*12*B*S*H/Nd,2*12*B*S*H/Nd,12*H*H/Nm]
             self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd
             self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd#bandwidth req
             self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm#compute power req
