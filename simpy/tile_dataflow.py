@@ -19,7 +19,7 @@ traffic=Enum('traffic',('act_store','act_fetch','comm','act_fd','grad_bd','wt_lo
 
 class Tile():# for compute process
     def __init__(self,tile_name='tx8',
-                 sram_size_MB=3,macs=4000,freq_GHz=1,\
+                 sram_capacity_MB=3,macs=4000,freq_GHz=1,\
                  with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
                     opt=ML.OPTIMIZER,ZeRO=ML.ZeRO_strategy.none) -> None:
         #info
@@ -33,7 +33,7 @@ class Tile():# for compute process
         self.buffer_bytes=ML.BYTES['FP16']
 
         #define buffer & sram size & dram_size
-        self.sram_size=sram_size_MB
+        self.sram_capacity=sram_capacity_MB
         self.with_dram=with_dram
         self.dram_bw=dram_bw_GB
         self.dram_capacity=dram_capacity_GB
@@ -138,6 +138,7 @@ class Tile():# for compute process
             else:
                 rs2=recompute_strategy.all   
         else:
+            total_mem_size=tile.sram_capacity #MB
             rs2=recompute_strategy.none
             if mem_occupy_by_weight_and_states+mem_occupy_by_act_with_stageflow<total_mem_size:
                 ss1=sram_strategy.ACT_weight

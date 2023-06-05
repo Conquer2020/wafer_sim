@@ -20,7 +20,9 @@ class CompOp():
         self.w_s_g_access_m=[0,0,0]
         #compute power req
         self.fd_macs=0  
-  
+        #communication req
+        self.f_b_u_comm=[0,0,0]
+        self.ZeRO_comm=[0,0]
         self.__analysis()
     def __str__(self):
         return '({},{})'.format(self.type,self.param_dim)
@@ -106,10 +108,10 @@ class CompOp():
         self.__analysis()
 
 class CommOp():
-    def __init__(self,device_id:Optional[List[int]]=None,comm_type:ML.COMM=ML.COMM.NONE,comm_size=0) -> None:
+    def __init__(self,device_group:Optional[List[int]]=None,comm_type:ML.COMM=ML.COMM.NONE,comm_size=0) -> None:
         self.type=comm_type
         self.size=comm_size
-        self.device=device_id
+        self.device_group=device_group
         self.__analysis()
     def __analysis(self):
         assert(self.type==ML.COMM.NONE or self.type==ML.COMM.ALL_REDUCE or self.type==ML.COMM.ALL_2_ALL)
@@ -128,8 +130,8 @@ class Oppd(CompOp):
         #parallism_dim:forward(f):(comm_type,comm_size_MB),backward(b):updata_weight(u):
         #here is a fact that communication caused by data parallelism only happens on weight update phase,
         #similarly,communication caused by model parallelism only happens on forward and backward phase
-        self.f_b_u_comm=[0,0,0]
-        self.ZeRO_comm=[0,0] #forward all-gather,backward all-gather
+        self.f_b_u_comm_d=[]
+        self.ZeRO_comm_d=[] #forward all-gather,backward all-gather
         self.dpmap_flag=False
     def dpmap(self,device_id:List[int],parallel_strategy:Optional[List[int]]=None):
         assert parallel_strategy==None or len(parallel_strategy)<=4,'The number of parallel dimensions exceeds the op dim space!'
@@ -151,15 +153,14 @@ class Oppd(CompOp):
         if self.type==ML.OP.Transformer:
             [B,S,H,A]=self.param_dim
             [Nd,Nm]=self.p_sgy
-
-            #Nd:
-            Nd_Group=self.device[::Nm]
-            Nm_Group=[]
+            #Nd*Nm=device_num
+            Nd_Group=[self.device[::Nm]]
+            Nm_Group=[self.device[i:i+Nm-1] for i in range(Nm)]
             comm_info=[]
-            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,self.w_s_g_size_m[0]))#forward
-            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,self.w_s_g_size_m[0]))#backward
-            comm_info.append(CommOp(ML.COMM.ALL_2_ALL,self.w_s_g_size_m[0]))#weight update
-            self.f_b_u_comm.append(comm_info)
+            comm_info.append(CommOp(Nm_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[0]))#forward
+            comm_info.append(CommOp(Nm_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[1]))#backward
+            comm_info.append(CommOp(Nd_Group,ML.COMM.ALL_REDUCE,self.f_b_u_comm[2]))#weight update
+            self.f_b_u_comm_d=comm_info
     def __str__(self):
         if self.dpmap_flag:
             return '{}:(({},{}),parallel_strategy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.parallel_strategy,self.device)
