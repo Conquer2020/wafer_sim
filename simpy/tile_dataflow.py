@@ -181,6 +181,11 @@ class Tile():# for compute process
 
     @staticmethod
     def execute_forward_process(tile,env,map_ana:list,device:List[int],op:OpNode,wd1:wd):
+        [df0,ss1,rs2]=map_ana
+        if tile.with_dram:
+            pass
+        else:
+            pass
         yield env.timeout(5)
     @staticmethod 
     def execute_backward_process(tile,env,map_ana,device:List[int],op:OpNode,wd1:wd):
