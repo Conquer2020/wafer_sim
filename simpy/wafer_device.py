@@ -11,7 +11,7 @@ class Packet():
         self.size=self._size_MB()
         self.meta_data=meta_data
     def _size_MB(self):
-        temp=mbytes(self.shape)
+        temp=mulc(self.shape)
         return temp/1000/1000
     def __str__(self):
         return 'Packet:(id:{},shape:{},size:{} MByte,meta:{})'.format(self.id,self.shape,self.size,self.meta_data)
@@ -253,7 +253,7 @@ class Wafer_Device():
     def dram_read_group_process(self,access_size_MB:Union[int,List[int]],group_id:List[int],task_id,multicast=True):
         #TODO 优化
         if type(access_size_MB) is list:
-            temp=mbytes(access_size_MB)
+            temp=mulc(access_size_MB)
             access_size_MB=temp/1000/1000   
         while(True):
             yield self.env.process(self.edge_dram_read_process(access_size_MB,group_id[0],task_id))
@@ -266,7 +266,7 @@ class Wafer_Device():
     def dram_write_group_process(self,access_size_MB:Union[int,List[int]],group_id:List[int],task_id,gather=True):
         #TODO 优化
         if type(access_size_MB) is list:
-            temp=mbytes(access_size_MB)
+            temp=mulc(access_size_MB)
             access_size_MB=temp/1000/1000 
         while(True):
             g_size=len(group_id)

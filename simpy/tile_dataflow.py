@@ -164,34 +164,32 @@ class Tile():# for compute process
         return [df0,ss1,rs2]
 
     @staticmethod
-    def execute_comm_process(tile,env,comm_op:CommOp,wd1:wd):
+    def execute_comm_process(tile,comm_op:CommOp,wd1:wd,traffic_tpye:traffic=traffic.comm):
+        comm_mbytes=0
         if comm_op.type==COMM.ALL_REDUCE:
-            pass
-        elif comm_op.type==COMM.ALL_REDUCE:
-            pass
-        elif comm_op.type==COMM.ALL_REDUCE:
+            for gp in comm_op.device_group:
+                comm_mbytes=comm_op.size*tile.comm_bytes
+                yield wd1.env.process(wd1.ALL_REDUCE_process(comm_mbytes,gp,traffic_tpye))
+        elif comm_op.type==COMM.ALL_2_ALL:
+            for gp in comm_op.device_group:
+                comm_mbytes=comm_op.size*tile.comm_bytes
+                yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
+        elif comm_op.type==COMM.NONE:
             pass
         else:
             pass
 
-
-
-
-
-
-
-
-
-
-
-
-        yield env.timeout(5)
     @staticmethod
     def execute_forward_process(tile,env,map_ana:list,device:List[int],op:OpNode,wd1:wd):
         yield env.timeout(5)
     @staticmethod 
     def execute_backward_process(tile,env,map_ana,device:List[int],op:OpNode,wd1:wd):
         yield env.timeout(10)
+
+    @staticmethod 
+    def execute_weight_update_process(tile,env,map_ana,device:List[int],op:OpNode,wd1:wd):
+        yield env.timeout(10)
+
 
 
 
