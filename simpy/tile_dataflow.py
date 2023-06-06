@@ -91,7 +91,7 @@ class Tile():# for compute process
         acc_op_weight_size=0
         acc_op_intra_act_size=0
         acc_op_input_act_size=0
-        #acc_op_output_act_size=0          # mbytes(op_list[-1].i_shape) no store
+        #acc_op_output_act_size=0          # mulc(op_list[-1].i_shape) no store
         df0=dataflow.WS
         ss1=sram_strategy.cache
         rs2=recompute_strategy.none
@@ -102,7 +102,7 @@ class Tile():# for compute process
         #dram/sram allocation for each op with parallism  and recompute strategy
         # @fangjh21.20230602
         for op in op_list:
-            acc_op_input_act_size+=mbytes(op.i_shape)
+            acc_op_input_act_size+=mulc(op.i_shape)
             acc_op_weight_size+=op.param_size_m
             acc_op_intra_act_size+=op.intra_act_size_m
             
