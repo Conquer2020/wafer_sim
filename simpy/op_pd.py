@@ -21,7 +21,7 @@ class CompOp():
         self.intra_act_access_m=0
         self.w_s_g_access_m=[0,0,0]
         #compute power req
-        self.fd_macs=0  
+        self.fd_macs_m=0  
         #communication req
         self.f_b_u_comm=[0,0,0]
         self.ZeRO_comm=[0,0]
@@ -43,7 +43,7 @@ class CompOp():
             self.intra_act_access_m=0
             self.w_s_g_access_m=[0,0,0]
             #compute power req
-            self.fd_macs=B*M*N*K/Nd/Nm1/Nm2/Nm3
+            self.fd_macs_m=B*M*N*K/Nd/Nm1/Nm2/Nm3/1000/1000
         elif self.type==OP.Conv2:
             #TODO
             assert(len(self.param_dim)==7)#B,C,H,W,R,S,K
@@ -59,7 +59,7 @@ class CompOp():
             self.intra_act_access_m=0
             self.w_s_g_access_m=[0,0,0]
             #compute power req
-            self.fd_macs=C*R*S*o_h*o_w*K
+            self.fd_macs_m=C*R*S*o_h*o_w*K/1000/1000
         elif self.type==OP.Transformer:
             #TODO for verification with hand analysis
             assert(len(self.param_dim)==4 and len(self.p_sgy)==2)
@@ -68,9 +68,9 @@ class CompOp():
             self.o_shape=[B//Nd,S,H]
             self.i_shape=[B//Nd,S,H]  
 
-            w_s_g=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])
+            w_s_g=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])/1000/1000
             zero_w_s_g=np.array([1,1,1])
-            w_s_g_access=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])
+            w_s_g_access=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])/1000/1000
             zero_w_s_g_access=np.array([1,1,1])
             #reference:Wang huizheng's
             if self.ZeRO==ZeRO_strategy.ZeRO_3:
@@ -91,22 +91,22 @@ class CompOp():
                 self.ZeRO_comm=[0,0]
             self.w_s_g_size_m=(w_s_g*zero_w_s_g).tolist()#capacity req
             self.w_s_g_access_m=(w_s_g_access*zero_w_s_g_access).tolist()#bandwidth req
-            self.f_b_u_comm=[2*12*B*S*H/Nd,2*12*B*S*H/Nd,12*H*H/Nm]
-            self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd
-            self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd#bandwidth req
-            self.fd_macs=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm#compute power req
+            self.f_b_u_comm=[2*12*B*S*H/Nd/1000/1000,2*12*B*S*H/Nd/1000/1000,12*H*H/Nm/1000/1000]
+            self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd/1000/1000
+            self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd/1000/1000#bandwidth req
+            self.fd_macs_m=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm/1000/1000#compute power req
   
         elif self.type==OP.Embedding:
             #TODO
             assert(len(self.param_dim)==4)
             self.o_shape=0 
             self.i_shape=0 
-            self.fd_macs=0
+            self.fd_macs_m=0
         else:
             #TODO
             self.o_shape=0 
             self.i_shape=0 
-            self.fd_macs=0
+            self.fd_macs_m=0
             raise NotImplementedError
     def set_ZeRO(self,ZeRO):
         self.ZeRO=ZeRO
@@ -145,7 +145,7 @@ class Oppd(CompOp):
             self.p_sgy=[1,len(device_id)]
             self.device=device_id
         else:
-            assert(mbytes(parallel_strategy)==len(device_id))
+            assert(mulc(parallel_strategy)==len(device_id))
             self.p_sgy=parallel_strategy
             self.device=device_id
         # TODO 完成并行通信算子的生成
