@@ -9,7 +9,7 @@ BYTES={'NONE':0,'INT8':1,'FP16':2,'TF32':2.375,'FP32':4}
 dataflow=Enum('dataflow',('IS','WS','OS'))
 comp_model=Enum('comp_model',('simple','SCALE_SIM'))
 
-sram_strategy=Enum('sram_strategy',('cache','weight','ACT','ACT_weight'))
+store_strategy=Enum('store_strategy',('cache','weight','ACT','ACT_weight','none'))
 recompute_strategy=Enum('recompute_strategy',('none','half','all'))
 
 pipe_strategy=Enum('pipe_strategy',('GPipe','Megatron1F1B','Interleaved1F1B','Cerebras'))

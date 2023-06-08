@@ -36,7 +36,7 @@ class Tile():# for compute process
         self.cp_model=comp_model.SCALE_SIM
         self.freq=freq_GHz
         self.dataflow=dataflow.IS
-        #self.tflops=self.macs*2*self.freq
+        self.tflops=self.macs*2*self.freq
 
         self.ZeRO=ZeRO
         self.opt=opt
@@ -105,10 +105,13 @@ class Tile():# for compute process
         acc_op_intra_act_size=0
         acc_op_input_act_size=0
         #acc_op_output_act_size=0          # mulc(op_list[-1].i_shape) no store
-        df0=dataflow.WS
-        ss1=sram_strategy.cache
-        rs2=recompute_strategy.none
-        zs3=tile.self.ZeRO
+        dataflow0=dataflow.WS
+        sram1=store_strategy.cache
+        recomputes2=recompute_strategy.none
+        tiledram3=store_strategy.none
+        edgedram4=store_strategy.none
+        ZeRO=tile.self.ZeRO
+        ts4=store_strategy.cache
         [pipe_strategy,info1,info2]=stage_info
         #input_act_size=mulc(op_list[0].i_shape)
         #ouput_act_size=mulc(op_list[-1].o_shape)
@@ -116,9 +119,9 @@ class Tile():# for compute process
         #dram/sram allocation for each op with parallism  and recompute strategy
         # @fangjh21.20230602
         for op in op_list:
-            op.set_ZeRO(zs3)
+            op.set_ZeRO(ZeRO)
             temp=np.array(op.w_s_g_size_m)*np.array(tile.wsg_bytes)
-            acc_op_wsg_size+=mulc(temp.tolist())
+            acc_op_wsg_size+=mulc(temp.tolist())+0 #TODO 计算所需冗余空间
             acc_op_intra_act_size+=op.intra_act_size_m*tile.act_bytes
             
         act_times_coe=0
@@ -134,34 +137,57 @@ class Tile():# for compute process
             raise NotImplementedError
         mem_occupy_by_wsg=acc_op_wsg_size
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
-        
-        if tile.with_dram:
-            #match dram setting
-            assert(wd1.dram_per_tile_resource!=[])
-            total_mem_size=tile.dram_capacity #GB
-            ss1=sram_strategy.cache
-            df0=dataflow.WS
-            if mem_occupy_by_wsg+mem_occupy_by_act_stage<total_mem_size:
-                rs2=recompute_strategy.none   
+
+        sram_size=tile.sram_capacity #MB
+        tiledram_size=tile.dram_capacity*1000 #MB
+        if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
+            dataflow0=dataflow.OS
+            sram1=store_strategy.ACT_weight
+            recomputes2=recompute_strategy.none
+            tiledram3=store_strategy.none
+        elif mem_occupy_by_wsg<sram_size: 
+            dataflow0=dataflow.WS
+            sram1=store_strategy.weight
+            if tile.with_dram:
+                assert(wd1.dram_per_tile_resource!=[])
+                if mem_occupy_by_act_stage<tiledram_size:
+                    recomputes2=recompute_strategy.none
+                    tiledram3=store_strategy.ACT
+                else:
+                    dataflow0=dataflow.WS
+                    sram1=store_strategy.cache
+                    recomputes2=recompute_strategy.all
+                    tiledram3=store_strategy.weight
+                    edgedram4=store_strategy.ACT
             else:
-                rs2=recompute_strategy.all   
+                    dataflow0=dataflow.WS
+                    sram1=store_strategy.cache
+                    recomputes2=recompute_strategy.all
+                    tiledram3=store_strategy.none
+                    edgedram4=store_strategy.ACT_weight
+        elif mem_occupy_by_act_stage<sram_size: 
+            pass
         else:
-            total_mem_size=tile.sram_capacity #MB
-            rs2=recompute_strategy.none
-            if mem_occupy_by_wsg+mem_occupy_by_act_stage<total_mem_size:
-                ss1=sram_strategy.ACT_weight
-                df0=dataflow.IS
-            elif mem_occupy_by_act_stage<total_mem_size:
-                ss1=sram_strategy.weight
-                df0=dataflow.IS
-            elif mem_occupy_by_wsg<total_mem_size:
-                ss1=sram_strategy.ACT
-                df0=dataflow.WS
+            if mem_occupy_by_wsg+mem_occupy_by_act_stage<tiledram_size:
+                dataflow0=dataflow.OS
+                sram1=store_strategy.cache
+                recomputes2=recompute_strategy.none
+                tiledram3=store_strategy.ACT_weight
+                edgedram4=store_strategy.none
+
+            elif mem_occupy_by_wsg<tiledram_size:
+                dataflow0=dataflow.WS
+                sram1=store_strategy.cache
+                recomputes2=recompute_strategy.all
+                tiledram3=store_strategy.weight
+                edgedram4=store_strategy.ACT
             else:
-                rs2=recompute_strategy.all
-                ss1=sram_strategy.cache
-                df0=dataflow.OS
-        return [df0,ss1,rs2]
+                dataflow0=dataflow.IS
+                sram1=store_strategy.cache
+                recomputes2=recompute_strategy.all
+                tiledram3=store_strategy.cache
+                edgedram4=store_strategy.ACT_weight
+        return  dataflow0,sram1,recomputes2,tiledram3,edgedram4
 
     @staticmethod
     def execute_comm_process(tile,comm_op:CommOp,wd1:wd,traffic_tpye:traffic=traffic.comm):
@@ -180,19 +206,17 @@ class Tile():# for compute process
             pass
 
     @staticmethod
-    def execute_forward_process(tile,env,map_ana:list,device:List[int],op:OpNode,wd1:wd):
-        [df0,ss1,rs2]=map_ana
-        if tile.with_dram:
-            pass
-        else:
-            pass
-        yield env.timeout(5)
+    def execute_forward_process(tile,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
+        dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
+        for op in op_list:
+            if sram1==store_strategy.ACT_weight:
+                yield env.timeout(2*op.fd_macs_m/tile.tflops)   
     @staticmethod 
-    def execute_backward_process(tile,env,map_ana,device:List[int],op:OpNode,wd1:wd):
+    def execute_backward_process(tile,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
         yield env.timeout(10)
 
     @staticmethod 
-    def execute_weight_update_process(tile,env,map_ana,device:List[int],op:OpNode,wd1:wd):
+    def execute_weight_update_process(tile,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
         yield env.timeout(10)
 
 
