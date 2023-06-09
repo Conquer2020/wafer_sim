@@ -208,9 +208,20 @@ class Tile():# for compute process
     @staticmethod
     def execute_forward_process(tile,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
-        for op in op_list:
+        for op in op_list:#@fangjh21.20230609
             if sram1==store_strategy.ACT_weight:
-                yield env.timeout(2*op.fd_macs_m/tile.tflops)   
+                #
+                yield env.timeout(2*op.fd_macs_m/tile.tflops)
+            elif sram1==store_strategy.ACT:
+                pass
+            elif sram1==store_strategy.weight:
+                pass
+            elif sram1==store_strategy.none:
+                pass
+            else:
+                raise NotImplementedError
+
+
     @staticmethod 
     def execute_backward_process(tile,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
         yield env.timeout(10)
