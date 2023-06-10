@@ -250,6 +250,10 @@ class Wafer_Device():
             yield self.env.process(self.dram_per_tile_resource[src_id].access_process\
                                    (access_size_MB,task_id=task_id,write=WRITE,DEBUG_MODE=DEBUG_MODE))
             break
+    def tile_dram_group_access_process(self,access_size_MB,group_id:List[int],task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
+        for id in group_id:
+            yield self.env.process(self.tile_dram_access_process(access_size_MB,id,task_id,WRITE,DEBUG_MODE))
+            
     def dram_read_group_process(self,access_size_MB:Union[int,List[int]],group_id:List[int],task_id,multicast=True):
         #TODO 优化
         if type(access_size_MB) is list:

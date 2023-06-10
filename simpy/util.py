@@ -8,7 +8,7 @@ class BaseEnum(Enum):
     def __str__(self):
         return self.name
     
-def mbytes(a:List[int]):
+def mulc(a:List[int]):
     return reduce(mul,a)
 def shape_suppose(size):
     R=0
