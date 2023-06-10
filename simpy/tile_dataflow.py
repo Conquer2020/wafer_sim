@@ -143,7 +143,7 @@ class Tile():# for compute process
             dataflow0=dataflow.OS
             sram1=store_strategy.ACT_weight
             recomputes2=recompute_strategy.none
-            tiledram3=store_strategy.noneSS
+            tiledram3=store_strategy.none
         elif mem_occupy_by_wsg<sram_size: 
             dataflow0=dataflow.WS
             sram1=store_strategy.weight
