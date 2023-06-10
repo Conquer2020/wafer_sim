@@ -302,10 +302,8 @@ class Tile():# for compute process
                             #access_size_m=op.w_s_g_access_m[0]+max(1,op.mulc(op.i_shape)/1000/1000/tile.sram_capacity)+mulc(op.o_shape)/1000/1000
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                             op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
-
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
-                            
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
                             #TODO 区分是否是最后一个算子
