@@ -103,7 +103,6 @@ class Tile():# for compute process
         device_gp=device
         acc_op_wsg_size=0
         acc_op_intra_act_size=0
-        acc_op_input_act_size=0
         #acc_op_output_act_size=0          # mulc(op_list[-1].i_shape) no store
         dataflow0=dataflow.WS
         sram1=store_strategy.cache
@@ -111,9 +110,8 @@ class Tile():# for compute process
         tiledram3=store_strategy.none
         edgedram4=store_strategy.none
         ZeRO=tile.self.ZeRO
-        ts4=store_strategy.cache
         [pipe_strategy,info1,info2]=stage_info
-        #input_act_size=mulc(op_list[0].i_shape)
+        input_act_size_m=mulc(op_list[0].i_shape)/1000/1000
         #ouput_act_size=mulc(op_list[-1].o_shape)
 
         #dram/sram allocation for each op with parallism  and recompute strategy
@@ -139,12 +137,13 @@ class Tile():# for compute process
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
 
         sram_size=tile.sram_capacity #MB
-        tiledram_size=tile.dram_capacity*1000 #MB
+        tiledram_size=tile.dram_capacity*1000 #MB 
+
         if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
             dataflow0=dataflow.OS
             sram1=store_strategy.ACT_weight
             recomputes2=recompute_strategy.none
-            tiledram3=store_strategy.none
+            tiledram3=store_strategy.noneSS
         elif mem_occupy_by_wsg<sram_size: 
             dataflow0=dataflow.WS
             sram1=store_strategy.weight
