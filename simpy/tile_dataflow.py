@@ -1,7 +1,7 @@
 import math
 import simpy
 from  util import BaseEnum as Enum
-from typing import List,Optional
+from typing import List,Optional,Union
 from util import *
 from wafer_device import Wafer_Device as wd
 from wafer_device import Packet
@@ -36,7 +36,7 @@ class Tile():# for compute process
         self.cp_model=comp_model.SCALE_SIM
         self.freq=freq_GHz
         self.dataflow=dataflow.IS
-        self.tflops=self.macs*2*self.freq
+        self.TOPS=self.macs*2*self.freq/1000
 
         self.ZeRO=ZeRO
         self.opt=opt
@@ -50,6 +50,7 @@ class Tile():# for compute process
         #simpy env
         self.env=env
         self.cp_worker= simpy.Resource(env, capacity=1)
+        self.cm_worker= simpy.Resource(env, capacity=1)
 
 
 
@@ -88,6 +89,7 @@ class Tile():# for compute process
         each PE macs units: R*C
         #reference: https://github.com/ARM-software/SCALE-Sim
         '''
+        assert(len(param)==3)
         [SR,SC,T]=param
         [R,C]=self.array_shape
         [PR,PC]=self.array_group
@@ -104,11 +106,40 @@ class Tile():# for compute process
     #if there is one simple op，it is not nesscessary to use reccompute strategy
     #@fangjh21.20230602
 
-    def tile_comp_process(self,fd_macs_m):
-         with self.cp_worker.request() as req:
-                yield req
-                yield self.env.timeout(2*fd_macs_m/self.tflops)
+    def tile_comp_process(self,macs_m:Union[float,List[int]]):
+        '''
+        this is the tile compute process
 
+        the input is macs(M) or [M,N,K] parameter
+        '''
+        exetime=0.0
+        if type(macs_m)==list:
+            exetime=self.compute_cycles(macs_m)/self.freq/1000/1000 #ns to ms
+        else:
+            exetime=2*macs_m/self.TOPS/1000 # us to ms
+        with self.cp_worker.request() as req:
+                yield req
+                yield self.env.timeout(exetime)
+    def tile_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:traffic=traffic.comm):
+        '''
+        this is the tile communication process
+        '''
+        comm_mbytes=0
+        #here if communication can not overlap by compute time,the 'cm_worker' should to be 'cp_worker'
+        with self.cm_worker.request() as req:
+                yield req       
+                if comm_op.type==COMM.ALL_REDUCE:
+                    for gp in comm_op.device_group:
+                        comm_mbytes=comm_op.size*self.comm_bytes
+                        yield wd1.env.process(wd1.ALL_REDUCE_process(comm_mbytes,gp,traffic_tpye))
+                elif comm_op.type==COMM.ALL_2_ALL:
+                    for gp in comm_op.device_group:
+                        comm_mbytes=comm_op.size*self.comm_bytes
+                        yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
+                elif comm_op.type==COMM.NONE:
+                    pass
+                else:
+                    pass
     @staticmethod
     def mapping_analysis(tile,stage_info,device,op_list:List[OpNode],wd1:wd):
         #init 
@@ -201,21 +232,7 @@ class Tile():# for compute process
         return  dataflow0,sram1,recomputes2,tiledram3,edgedram4
 
     
-    @staticmethod
-    def execute_comm_process(tile,comm_op:CommOp,wd1:wd,traffic_tpye:traffic=traffic.comm):
-        comm_mbytes=0
-        if comm_op.type==COMM.ALL_REDUCE:
-            for gp in comm_op.device_group:
-                comm_mbytes=comm_op.size*tile.comm_bytes
-                yield wd1.env.process(wd1.ALL_REDUCE_process(comm_mbytes,gp,traffic_tpye))
-        elif comm_op.type==COMM.ALL_2_ALL:
-            for gp in comm_op.device_group:
-                comm_mbytes=comm_op.size*tile.comm_bytes
-                yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
-        elif comm_op.type==COMM.NONE:
-            pass
-        else:
-            pass
+
 
     @staticmethod
     def execute_forward_process(tile,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
@@ -480,15 +497,21 @@ class Tile():# for compute process
             event_list=[]
             if sram1==store_strategy.ACT_weight:
                 #idel 
-                yield env.process(tile.tile_comp_process(op.fd_macs_m))
+                yield env.process(tile.tile_comp_process(2*op.fd_macs_m))
             elif sram1==store_strategy.ACT:
                 if tiledram3==store_strategy.weight:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
+                            #recompute
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            
                             event_list.append(env.process(wd1.tile_dram_group_access_process(op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
                             event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+
+                            #backward
+                            #
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(op.w_s_g_access_m[1]+op.w_s_g_access_m[2],device,traffic.wt_load,WRITE=True)))
+                            
+
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             
