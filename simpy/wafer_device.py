@@ -253,7 +253,7 @@ class Wafer_Device():
     def tile_dram_group_access_process(self,access_size_MB,group_id:List[int],task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         for id in group_id:
             yield self.env.process(self.tile_dram_access_process(access_size_MB,id,task_id,WRITE,DEBUG_MODE))
-            
+
     def dram_read_group_process(self,access_size_MB:Union[int,List[int]],group_id:List[int],task_id,multicast=True):
         #TODO 优化
         if type(access_size_MB) is list:
@@ -352,9 +352,10 @@ class Wafer_Device():
 
 
 if __name__ == '__main__':
-    Debug=False
+    Debug=True
     env = simpy.Environment()
     wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_3ddram_per_tile=True)
+    '''
     env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))
     env.process(wd.edge_dram_read_process(10,src_id=1,DEBUG_MODE=Debug))
@@ -364,6 +365,7 @@ if __name__ == '__main__':
     env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=7,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=8,DEBUG_MODE=Debug))
     env.process(wd.STAGE_PASS_process(10,[0,1,2,3,5],[8,9],'TEST'))
-    env.process(wd.tile_dram_access_process(10,63,'TEST_3DDRAM'))
+    '''
+    env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
     env.run(until=10000)
  
