@@ -52,8 +52,6 @@ class Tile():# for compute process
         self.cp_worker= simpy.Resource(env, capacity=1)
         self.cm_worker= simpy.Resource(env, capacity=1)
 
-
-
     def __set_bytes(self):
         #TODO Mixed-precision is popular in  ML training process.
         #However,many AI archs have their float numberbprecision like TF32(Nvdia),CFP16(Dojo),etc.
@@ -152,7 +150,7 @@ class Tile():# for compute process
         recomputes2=recompute_strategy.none
         tiledram3=store_strategy.none
         edgedram4=store_strategy.none
-        ZeRO=tile.self.ZeRO
+        ZeRO=tile.ZeRO
         [pipe_strategy,info1,info2]=stage_info
         input_act_size_m=mulc(op_list[0].i_shape)/1000/1000
         #ouput_act_size=mulc(op_list[-1].o_shape)
@@ -241,7 +239,8 @@ class Tile():# for compute process
             access_size_m=0
             event_list=[]
             if sram1==store_strategy.ACT_weight:
-                #idel 
+                #idel
+                yield env.process(tile.tile_comp_process(op.fd_macs_m))
                 yield env.process(tile.tile_comp_process(op.fd_macs_m))
             elif sram1==store_strategy.ACT:
                 if tiledram3==store_strategy.weight:

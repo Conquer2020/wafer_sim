@@ -3,11 +3,11 @@ from util import *
 from typing import List,Optional,Union
 import numpy as np
 class CompOp():
-    def __init__(self,op_type:OP,op_param:List[int],parallel_strategy:List[int]=[1,1]) -> None:
+    def __init__(self,op_type:OP,op_param:List[int],p_sgy:List[int]=[1,1]) -> None:
         #base info 
         self.type=op_type
         self.param_dim=op_param
-        self.p_sgy=parallel_strategy
+        self.p_sgy=p_sgy
         self.ZeRO=ZeRO_strategy.none
         self.o_shape=[]
         self.i_shape=[]
@@ -25,11 +25,12 @@ class CompOp():
         #communication req
         self.f_b_u_comm=[0,0,0]
         self.ZeRO_comm=[0,0]
-        self.__analysis()
+        self._analysis()
     def __str__(self):
         return '({},{})'.format(self.type,self.param_dim)
-    def __analysis(self):
+    def _analysis(self):
         if self.type==OP.Linear:
+            print(len(self.p_sgy))
             assert(len(self.param_dim)==4 and len(self.p_sgy)==4)#B,M,N,K
             [B,M,N,K]=self.param_dim
             [Nd,Nm1,Nm2,Nm3]=self.p_sgy
@@ -110,15 +111,15 @@ class CompOp():
             raise NotImplementedError
     def set_ZeRO(self,ZeRO):
         self.ZeRO=ZeRO
-        self.__analysis()
+        self._analysis()
 
 class CommOp():
     def __init__(self,device_group:Optional[List[int]]=None,comm_type:COMM=COMM.NONE,comm_size=0) -> None:
         self.type=comm_type
         self.size=comm_size
         self.device_group=device_group
-        self.__analysis()
-    def __analysis(self):
+        self._analysis()
+    def _analysis(self):
         assert(self.type==COMM.NONE or self.type==COMM.ALL_REDUCE or self.type==COMM.ALL_2_ALL)
     def __str__(self) -> str:
         return '({},{})'.format(self.type,self.size)
@@ -138,17 +139,19 @@ class Oppd(CompOp):
         self.f_b_u_comm_d=[]
         self.ZeRO_comm_d=[] #forward all-gather,backward all-gather
         self.dpmap_flag=False
-    def dpmap(self,device_id:List[int],parallel_strategy:Optional[List[int]]=None):
-        assert parallel_strategy==None or len(parallel_strategy)<=4,'The number of parallel dimensions exceeds the op dim space!'
-        if (parallel_strategy==None or parallel_strategy==[]):
+
+    def dpmap(self,device_id:List[int],p_sgy:Optional[List[int]]=None):
+        assert p_sgy==None or len(p_sgy)<=4,'The number of parallel dimensions exceeds the op dim space!'
+        if (p_sgy==None or p_sgy==[]):
             #print('Warning:parallel dimension not specified as the number of device  more than one!')
             self.p_sgy=[1,len(device_id)]
             self.device=device_id
         else:
-            assert(mulc(parallel_strategy)==len(device_id))
-            self.p_sgy=parallel_strategy
+            assert(mulc(p_sgy)==len(device_id))
+            self.p_sgy=p_sgy
             self.device=device_id
         # TODO 完成并行通信算子的生成
+        self._analysis()
         self.comm_insert()
         self.dpmap_flag=True
         return True
@@ -156,7 +159,7 @@ class Oppd(CompOp):
         #pass
         self.f_b_u_comm_d=[]
         self.ZeRO_comm_d=[]
-        self.__analysis()
+        
         if self.type==OP.Transformer:
             [Nd,Nm]=self.p_sgy
             #Nd*Nm=device_num
@@ -171,13 +174,15 @@ class Oppd(CompOp):
 
             self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[0]))
             self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[1]))
-
+    def set_ZeRO(self,ZeRO):
+        super().set_ZeRO(ZeRO)
+        self.comm_insert()
     def __str__(self):
         if self.dpmap_flag:
-            return '{}:(({},{}),parallel_strategy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.parallel_strategy,self.device)
+            return '{}:(({},{}),p_sgy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.p_sgy,self.device)
         else:
             return '{}:({},{})'.format(self.hint_name,self.type,self.param_dim)
 if __name__ == '__main__':
-    op1=Oppd(op_type=OP.Linear,op_param=[1,128,128,512],hint_name='s0')
-    op1.dpmap(parallel_strategy=[0,1],device_id=[0,1])
+    op1=Oppd(op_type=OP.Transformer,op_param=[1,128,128,512],hint_name='s0')
+    op1.dpmap(p_sgy=[1,2],device_id=[0,1])
     print(op1)
