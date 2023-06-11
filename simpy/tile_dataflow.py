@@ -12,7 +12,7 @@ from comp_graph import CompGraph,OpNode
 from op_pd import CommOp
 
 class Tile():# for compute process
-    def __init__(self,tile_name='tx8',
+    def __init__(self,env,tile_name='tx8',
                  sram_capacity_MB=3,macs=4000,freq_GHz=1,\
                  with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
                     opt=OPTIMIZER,ZeRO=ZeRO_strategy.ZeRO_2) -> None:
@@ -46,6 +46,12 @@ class Tile():# for compute process
         self.buffer_bytes=0
         self.comm_bytes=0
         self.__set_bytes()
+
+        #simpy env
+        self.env=env
+        self.cp_worker= simpy.Resource(env, capacity=1)
+
+
 
     def __set_bytes(self):
         #TODO Mixed-precision is popular in  ML training process.
@@ -97,6 +103,12 @@ class Tile():# for compute process
     #each tile group may process one subgraph rather than one op
     #if there is one simple op，it is not nesscessary to use reccompute strategy
     #@fangjh21.20230602
+
+    def tile_comp_process(self,fd_macs_m):
+         with self.cp_worker.request() as req:
+                yield req
+                yield self.env.timeout(2*fd_macs_m/self.tflops)
+
     @staticmethod
     def mapping_analysis(tile,stage_info,device,op_list:List[OpNode],wd1:wd):
         #init 
@@ -137,7 +149,7 @@ class Tile():# for compute process
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
 
         sram_size=tile.sram_capacity #MB
-        tiledram_size=tile.dram_capacity*1000 #MB 
+        tile_dram_size=tile.dram_capacity*1000 #MB 
 
         if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
             dataflow0=dataflow.WS
@@ -149,7 +161,7 @@ class Tile():# for compute process
             sram1=store_strategy.weight
             if tile.with_dram:
                 assert(wd1.dram_per_tile_resource!=[])
-                if mem_occupy_by_act_stage<tiledram_size:
+                if mem_occupy_by_act_stage<tile_dram_size:
                     recomputes2=recompute_strategy.none
                     tiledram3=store_strategy.ACT
                 else:
@@ -165,16 +177,16 @@ class Tile():# for compute process
                     tiledram3=store_strategy.none
                     edgedram4=store_strategy.ACT_weight
         elif mem_occupy_by_act_stage<sram_size: 
-            pass
+            raise NotImplementedError
         else:
-            if mem_occupy_by_wsg+mem_occupy_by_act_stage<tiledram_size:
+            if mem_occupy_by_wsg+mem_occupy_by_act_stage<tile_dram_size:
                 dataflow0=dataflow.WS
                 sram1=store_strategy.cache
                 recomputes2=recompute_strategy.none
                 tiledram3=store_strategy.ACT_weight
                 edgedram4=store_strategy.none
 
-            elif mem_occupy_by_wsg<tiledram_size:
+            elif mem_occupy_by_wsg<tile_dram_size:
                 dataflow0=dataflow.WS
                 sram1=store_strategy.cache
                 recomputes2=recompute_strategy.all
@@ -188,6 +200,7 @@ class Tile():# for compute process
                 edgedram4=store_strategy.ACT_weight
         return  dataflow0,sram1,recomputes2,tiledram3,edgedram4
 
+    
     @staticmethod
     def execute_comm_process(tile,comm_op:CommOp,wd1:wd,traffic_tpye:traffic=traffic.comm):
         comm_mbytes=0
@@ -212,7 +225,7 @@ class Tile():# for compute process
             event_list=[]
             if sram1==store_strategy.ACT_weight:
                 #idel 
-                yield env.timeout(2*op.fd_macs_m/tile.tflops)
+                yield env.process(tile.tile_comp_process(op.fd_macs_m))
             elif sram1==store_strategy.ACT:
                 if tiledram3==store_strategy.weight:
                     if recomputes2==recompute_strategy.all:
@@ -220,25 +233,25 @@ class Tile():# for compute process
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.w_s_g_access_m[0]*max(1,temp_input_size_m/tile.sram_capacity),device,traffic.wt_load,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
                             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                         elif dataflow0==dataflow.IS:
                             #access_size_m=2*op.intra_act_access_m+op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity)+mulc(op.o_shape)/1000/1000
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity),device,traffic.wt_load,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                         else:
                             raise NotImplementedError
                 else:
@@ -253,7 +266,7 @@ class Tile():# for compute process
                             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
                             #TODO 
@@ -264,7 +277,7 @@ class Tile():# for compute process
                             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m,device,traffic.act_fetch,WRITE=False)))  
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))      
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))      
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m,device,traffic.act_store,WRITE=True)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
@@ -276,7 +289,7 @@ class Tile():# for compute process
                             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False))) 
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))  
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))  
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
@@ -285,7 +298,7 @@ class Tile():# for compute process
                             #access_size_m=2*op.intra_act_access_m+op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity)+mulc(op.o_shape)/1000/1000
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m,device,traffic.act_fetch,WRITE=False)))    
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))             
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))             
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m,device,traffic.act_store,WRITE=True)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
@@ -307,7 +320,7 @@ class Tile():# for compute process
                             op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
                             #TODO 
@@ -321,7 +334,7 @@ class Tile():# for compute process
 
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m,device,traffic.act_fetch,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 temp_input_size_m,device,traffic.act_store,WRITE=True)))
                             
@@ -338,7 +351,7 @@ class Tile():# for compute process
 
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
                             
@@ -353,7 +366,7 @@ class Tile():# for compute process
 
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m,device,traffic.act_fetch,WRITE=False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.tile_dram_group_access_process(\
                                 op.intra_act_access_m,device,traffic.act_store,WRITE=True)))
                             
@@ -372,7 +385,7 @@ class Tile():# for compute process
                             
                             access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
 
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_fetch,True)))
                             #TODO 
@@ -382,7 +395,7 @@ class Tile():# for compute process
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))    
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
                             #TODO 
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
@@ -392,7 +405,7 @@ class Tile():# for compute process
                         if dataflow0==dataflow.WS:
                             access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))   
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
 
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
@@ -400,7 +413,7 @@ class Tile():# for compute process
                         elif dataflow0==dataflow.IS:
                             access_size_m=op.intra_act_access_m*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False))) 
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
 
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
@@ -415,7 +428,7 @@ class Tile():# for compute process
                             
                             access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_fetch,True)))
                             #TODO 
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
@@ -424,7 +437,7 @@ class Tile():# for compute process
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))    
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
                             #TODO 
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
@@ -436,7 +449,7 @@ class Tile():# for compute process
 
                             access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))   
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
 
@@ -446,13 +459,13 @@ class Tile():# for compute process
                             
                             access_size_m=op.intra_act_access_m*len(device)
                             event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False))) 
-                            event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                             event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
                             event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
                         else:
                             raise NotImplementedError
                 #TODO
-                event_list.append(env.timeout(2*op.fd_macs_m/tile.tflops))
+                event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
                 yield simpy.AllOf(env, event_list)
 
             else:
@@ -460,9 +473,258 @@ class Tile():# for compute process
 
 
     @staticmethod 
-    def execute_backward_process(tile,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
-        yield env.timeout(10)
+    def execute_backward_process(tile,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
+        dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
+        for op in op_list:#@fangjh21.20230609
+            access_size_m=0
+            event_list=[]
+            if sram1==store_strategy.ACT_weight:
+                #idel 
+                yield env.process(tile.tile_comp_process(op.fd_macs_m))
+            elif sram1==store_strategy.ACT:
+                if tiledram3==store_strategy.weight:
+                    if recomputes2==recompute_strategy.all:
+                        if dataflow0==dataflow.WS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                        elif dataflow0==dataflow.IS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.w_s_g_access_m[0]*max(1,temp_input_size_m/tile.sram_capacity),device,traffic.wt_load,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                        else:
+                            raise NotImplementedError
+                    else:#without recompute strategy
+                        if dataflow0==dataflow.WS:
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                        elif dataflow0==dataflow.IS:
+                            #access_size_m=2*op.intra_act_access_m+op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity)+mulc(op.o_shape)/1000/1000
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity),device,traffic.wt_load,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                        else:
+                            raise NotImplementedError
+                else:
+                    raise NotImplementedError
+                
+                yield simpy.AllOf(env, event_list)    
+            elif sram1==store_strategy.weight:
+                if tiledram3==store_strategy.ACT:
+                    if recomputes2==recompute_strategy.all:
+                        if dataflow0==dataflow.WS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
+                            #TODO 
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        elif dataflow0==dataflow.IS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m,device,traffic.act_fetch,WRITE=False)))  
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))      
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m,device,traffic.act_store,WRITE=True)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        else:
+                            raise NotImplementedError
+                    else:#without recompute strategy
+                        if dataflow0==dataflow.WS:
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False))) 
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))  
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        elif dataflow0==dataflow.IS:
+                            #access_size_m=2*op.intra_act_access_m+op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity)+mulc(op.o_shape)/1000/1000
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m,device,traffic.act_fetch,WRITE=False)))    
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))             
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m,device,traffic.act_store,WRITE=True)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        else:
+                            raise NotImplementedError
+                else:
+                    raise NotImplementedError
+                yield simpy.AllOf(env,event_list)
 
+            elif sram1==store_strategy.cache:
+                if tiledram3==store_strategy.ACT_weight:
+                    assert(edgedram4==store_strategy.none)
+                    if recomputes2==recompute_strategy.all:
+                        if dataflow0==dataflow.WS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                            op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
+                            #TODO 
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        elif dataflow0==dataflow.IS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.w_s_g_access_m[0]*max(1,temp_input_size_m/tile.sram_capacity),device,traffic.wt_load,WRITE=False)))
+
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m,device,traffic.act_fetch,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                temp_input_size_m,device,traffic.act_store,WRITE=True)))
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        elif dataflow0==dataflow.OS:
+                            raise NotImplementedError
+                            
+                    else:#without recompute strategy
+                        if dataflow0==dataflow.WS:
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.w_s_g_access_m[0],device,traffic.wt_load,WRITE=False)))
+
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_fetch,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/tile.sram_capacity),device,traffic.act_store,WRITE=True)))
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+
+                        elif dataflow0==dataflow.IS:
+                            #
+                            #access_size_m=2*op.intra_act_access_m+op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity)+mulc(op.o_shape)/1000/1000
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/tile.sram_capacity),device,traffic.wt_load,WRITE=False)))
+
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m,device,traffic.act_fetch,WRITE=False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                op.intra_act_access_m,device,traffic.act_store,WRITE=True)))
+                            
+                            event_list.append(env.process(wd1.tile_dram_group_access_process(\
+                                mulc(op.o_shape)/1000/1000,device,traffic.act_store,WRITE=True)))
+                        elif dataflow0==dataflow.OS:
+                            raise NotImplementedError
+                elif tiledram3==store_strategy.ACT:
+                    assert(edgedram4==store_strategy.weight and dataflow0==dataflow.WS)
+                    raise NotImplementedError
+                elif tiledram3==store_strategy.weight:
+                    assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
+                    if recomputes2==recompute_strategy.all:
+                        if dataflow0==dataflow.WS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_fetch,True)))
+                            #TODO 
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+                            
+                        elif dataflow0==dataflow.IS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            access_size_m=temp_input_size_m*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))    
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
+                            #TODO 
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+                        else:
+                            raise NotImplementedError
+                    else:#without recompute strategy
+                        if dataflow0==dataflow.WS:
+                            access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))   
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+
+                        elif dataflow0==dataflow.IS:
+                            access_size_m=op.intra_act_access_m*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False))) 
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+                        else:
+                            raise NotImplementedError
+                        
+                elif tiledram3==store_strategy.cache:
+                    assert(edgedram4==store_strategy.ACT_weight)
+                    if recomputes2==recompute_strategy.all:
+                        if dataflow0==dataflow.WS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            
+                            access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_fetch,True)))
+                            #TODO 
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+                            
+                        elif dataflow0==dataflow.IS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            access_size_m=temp_input_size_m*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))    
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
+                            #TODO 
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+                        else:
+                            raise NotImplementedError
+                    else:#without recompute strategy
+                        if dataflow0==dataflow.WS:
+                            event_list.append(env.process(wd1.dram_read_group_process(op.w_s_g_access_m[0],device,traffic.wt_load,False)))  
+
+                            access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(tile.dram_capacity*1000))*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False)))   
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+
+                        elif dataflow0==dataflow.IS:
+                            access_size_m=op.w_s_g_access_m[0]*max(1,temp_input_size_m/(tile.dram_capacity*1000))
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.wt_load,False)))  
+                            
+                            access_size_m=op.intra_act_access_m*len(device)
+                            event_list.append(env.process(wd1.dram_read_group_process(access_size_m,device,traffic.act_fetch,False))) 
+                            event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                            event_list.append(env.process(wd1.dram_write_group_process(access_size_m,device,traffic.act_store,True)))
+                            event_list.append(env.process(wd1.dram_write_group_process(mulc(op.o_shape)/1000/1000,device,traffic.act_store,True)))
+                        else:
+                            raise NotImplementedError
+                #TODO
+                event_list.append(env.process(tile.tile_comp_process(op.fd_macs_m)))
+                yield simpy.AllOf(env, event_list)
+
+            else:
+                raise NotImplementedError
     @staticmethod 
     def execute_weight_update_process(tile,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
         yield env.timeout(10)
