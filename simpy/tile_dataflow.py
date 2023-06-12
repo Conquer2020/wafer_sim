@@ -595,7 +595,7 @@ class Tile():# for compute process
 
             else:
                 raise NotImplementedError
-@staticmethod 
+    @staticmethod 
     def execute_weight_update_process(tile,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
         yield env.timeout(10)
 
