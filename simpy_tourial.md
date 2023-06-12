@@ -36,18 +36,19 @@ class comm_overlap():
     def order_process(self):
          while(True):
               yield self.env.process(self.cp_process())
-              yield self.env.process(self.cm_process())
+              yield self.env.process(self.cm_process())#等待事件顺序完成
               print('process order_process done @{:.3f} '.format(self.env.now))
               break
     def short_process(self):
         while(True):
               yield self.env.timeout(20)
-              yield self.env.timeout(30)
+              yield self.env.timeout(30)#等待事件顺序完成
               print('process short_process done @{:.3f} '.format(self.env.now))
               break
 if __name__ == '__main__':
     env=simpy.Environment()
     test=comm_overlap(env)
+    #顶层事件并行注册
     env.process(test.overlap_process())
     env.process(test.order_process())
     env.process(test.short_process())
@@ -55,7 +56,7 @@ if __name__ == '__main__':
 ```
 
 
-Result:
+#####Result:
 
     process 1 done @20.000
 
