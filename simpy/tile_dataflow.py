@@ -235,7 +235,6 @@ class Tile():# for compute process
             assert(len(param)==11)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
-            
             if(param[0]!=None):
                 event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes,group_id=device,task_id=event.wt_load,multicast=False)))
             if(param[1]!=None):
@@ -252,15 +251,15 @@ class Tile():# for compute process
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[4]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[6]*self.comm_bytes,wd1,event.comm)))
             if(param[7]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[6]*self.act_bytes,device,event.act_store,WRITE=True)))
-            if(param[8]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.act_store,WRITE=True)))
+            if(param[8]!=None):
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[8]*self.act_bytes,device,event.act_store,WRITE=True)))
             if(param[9]!=None):
-                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes,group_id=device,task_id=event.act_store,gather=True)))
-            if(param[10]!=None):
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[9]*self.act_bytes,group_id=device,task_id=event.act_store,gather=True)))
+            if(param[10]!=None):
+                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[10]*self.act_bytes,group_id=device,task_id=event.act_store,gather=True)))
             return event_list
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:#@fangjh21.20230609
@@ -430,32 +429,31 @@ class Tile():# for compute process
             event_list=execute_template_event(param)
             yield simpy.AllOf(env, event_list)
     def execute_backward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
-        def execute_template_event(param=[None,None,None,None,None,None,None,None,None,None]):
-            assert(len(param)==10)
-            #param=[wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store]
+        def execute_template_recompute_event(param=[None,None,None,None,None,None,None,None,None]):
+            assert(len(param)==9)
+            #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
             if(param[0]!=None):
-                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0],group_id=device,task_id=event.wt_load,multicast=False)))
+                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes,group_id=device,task_id=event.wt_load,multicast=False)))
             if(param[1]!=None):
-                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[1],group_id=device,task_id=event.act_fetch,multicast=False)))
+                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[1]*self.act_bytes,group_id=device,task_id=event.act_fetch,multicast=False)))
             if(param[2]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[2],device,event.wt_load,WRITE=False)))
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[2]*self.buffer_bytes,device,event.wt_load,WRITE=False)))
             if(param[3]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[3],device,event.act_fetch,WRITE=False)))
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[3]*self.act_bytes,device,event.act_fetch,WRITE=False)))
             if(param[4]!=None):
-                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
+                #ZeRO communication 
+                event_list.append(env.process(self.tile_comm_process(param[4]*self.comm_bytes,wd1,event.comm)))
             if(param[5]!=None):
-                #recompute 
+                #compute 
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[6],device,event.act_store,WRITE=True)))
+                #communication 
+                event_list.append(env.process(self.tile_comm_process(param[6]*self.comm_bytes,wd1,event.comm)))
             if(param[7]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[7],device,event.act_store,WRITE=True)))
-            
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.act_store,WRITE=True)))
             if(param[8]!=None):
-                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8],group_id=device,task_id=event.act_store,gather=True)))
-            if(param[9]!=None):
-                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[9],group_id=device,task_id=event.act_store,gather=True)))
+                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes,group_id=device,task_id=event.act_store,gather=True)))
             return event_list
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:#@fangjh21.20230609
