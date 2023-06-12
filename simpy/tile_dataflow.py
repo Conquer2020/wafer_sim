@@ -118,7 +118,7 @@ class Tile():# for compute process
         with self.cp_worker.request() as req:
                 yield req
                 yield self.env.timeout(exetime)
-    def tile_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:traffic=traffic.comm):
+    def tile_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:event=event.comm):
         '''
         this is the tile communication process
         '''
@@ -230,114 +230,128 @@ class Tile():# for compute process
         return  dataflow0,sram1,recomputes2,tiledram3,edgedram4
     
     def execute_forward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
-        def execute_template_event(param=[None,None,None,None,None,None,None]):
-            assert(len(param)==6)
-            #param=[wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store]
+        def execute_template_event(param=[None,None,None,None,None,None,None,None,None,None,None]):
+            assert(len(param)==11)
+            #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
             if(param[0]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[0],device,traffic.wt_load,WRITE=False)))
+                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0],group_id=device,task_id=event.wt_load,multicast=False)))
             if(param[1]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[1],device,traffic.act_fetch,WRITE=False)))
+                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[1],group_id=device,task_id=event.act_fetch,multicast=False)))
             if(param[2]!=None):
-                event_list.append(env.process(self.tile_comm_process(param[2],wd1,traffic.comm)))
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[2],device,event.wt_load,WRITE=False)))
             if(param[3]!=None):
-                event_list.append(env.process(self.tile_comp_process(param[3])))
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[3],device,event.act_fetch,WRITE=False)))
             if(param[4]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[4],device,traffic.act_store,WRITE=True)))
+                #ZeRO communication 
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
             if(param[5]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[5],device,traffic.act_store,WRITE=True)))
+                #compute 
+                event_list.append(env.process(self.tile_comp_process(param[5])))
+            if(param[6]!=None):
+                #communication 
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
+            if(param[7]!=None):
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[6],device,event.act_store,WRITE=True)))
+            if(param[8]!=None):
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[7],device,event.act_store,WRITE=True)))
+            if(param[9]!=None):
+                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8],group_id=device,task_id=event.act_store,gather=True)))
+            if(param[10]!=None):
+                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[9],group_id=device,task_id=event.act_store,gather=True)))
             return event_list
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:#@fangjh21.20230609
             access_size_m=0
             event_list=[]
-            param=[None,None,op.ZeRO_comm_d[0],op.fd_macs_m,None,None,None]
-            #param[2]=op.ZeRO_comm_d[0] 
-            #param[3]=op.fd_macs_m
+            param=[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm[0] ,None,None,None,None]
+            #param[0],param[1] edge dram read
+            #param[2],param[3] tile dram read
+            #param[4]=op.ZeRO_comm_d[0] 
+            #param[5]=op.fd_macs_m
+            #param[6]=op.f_b_u_comm[0] 
+            #param[7],param[8] tile dram write
+            #param[9],param[10] edge dram write
             if sram1==store_strategy.ACT_weight:
-                #IDLE
+                #ideal situation
                 pass
             elif sram1==store_strategy.ACT:
                 if tiledram3==store_strategy.weight:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            param[0]=op.w_s_g_access_m[0]                           
+                            param[2]=op.w_s_g_access_m[0]                           
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[0]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/self.sram_capacity)      
+                            param[2]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/self.sram_capacity)      
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-                            param[0]=op.w_s_g_access_m[0]                            
+                            param[2]=op.w_s_g_access_m[0]                            
                         elif dataflow0==dataflow.IS:
-                            param[0]=op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/self.sram_capacity)                           
+                            param[2]=op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/self.sram_capacity)                           
                         else:
                             raise NotImplementedError
                 else:
-                    raise NotImplementedError
-                yield simpy.AllOf(env, event_list)    
+                    raise NotImplementedError  
             elif sram1==store_strategy.weight:
                 if tiledram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[1]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[4]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[3]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[6]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[1]=temp_input_size_m
-                            param[4]=temp_input_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[3]=temp_input_size_m
+                            param[6]=temp_input_size_m
+                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-                            param[1]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[4]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[3]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[6]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
-                            param[1]=op.intra_act_access_m
-                            param[4]=op.intra_act_access_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[3]=op.intra_act_access_m
+                            param[6]=op.intra_act_access_m
+                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         else:
                             raise NotImplementedError
                 else:
                     raise NotImplementedError
                 event_list=execute_template_event(param)
-                yield simpy.AllOf(env,event_list)
-
             elif sram1==store_strategy.cache:
                 if tiledram3==store_strategy.ACT_weight:
                     assert(edgedram4==store_strategy.none)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[0]=op.w_s_g_access_m[0]
-                            param[1]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[4]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[2]=op.w_s_g_access_m[0]
+                            param[3]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[7]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[0]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/self.sram_capacity)
-                            param[1]=temp_input_size_m
-                            param[4]=temp_input_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[2]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/self.sram_capacity)
+                            param[3]=temp_input_size_m
+                            param[7]=temp_input_size_m
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.OS:
                             raise NotImplementedError
-                            
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-                            param[0]=op.w_s_g_access_m[0]
-                            param[1]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[4]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[2]=op.w_s_g_access_m[0]
+                            param[3]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[7]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
-                            param[0]=op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/self.sram_capacity)
-                            param[1]=op.intra_act_access_m
-                            param[4]=op.intra_act_access_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[2]=op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/self.sram_capacity)
+                            param[3]=op.intra_act_access_m
+                            param[7]=op.intra_act_access_m
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.OS:
                             raise NotImplementedError
                 elif tiledram3==store_strategy.ACT:
@@ -350,46 +364,47 @@ class Tile():# for compute process
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO    
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO    
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*len(device)
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
                             access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
 
                         elif dataflow0==dataflow.IS:
                             access_size_m=op.intra_act_access_m*len(device)
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         else:
-                            raise NotImplementedError
-                        
+                            raise NotImplementedError           
                 elif tiledram3==store_strategy.cache:
                     assert(edgedram4==store_strategy.ACT_weight)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)
+                            param[0]=op.w_s_g_access_m[0]
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*len(device)
+                            param[0]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/(self.dram_capacity*1000))
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
@@ -397,38 +412,46 @@ class Tile():# for compute process
                             access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)  
                             param[0]=op.w_s_g_access_m[0]
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         elif dataflow0==dataflow.IS:
                             access_size_m=op.intra_act_access_m*len(device)
                             param[0]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/(self.dram_capacity*1000))
                             param[1]=access_size_m
-                            param[4]=access_size_m
-                            param[5]=mulc(op.o_shape)/1000/1000 #TODO 
+                            param[9]=access_size_m
+                            param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         else:
                             raise NotImplementedError
-                #TODO
-                yield simpy.AllOf(env, event_list)
-
             else:
                 raise NotImplementedError
+        yield simpy.AllOf(env, event_list)
     def execute_backward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
-        def execute_template_event(param=[None,None,None,None,None,None,None]):
-            assert(len(param)==6)
+        def execute_template_event(param=[None,None,None,None,None,None,None,None,None,None]):
+            assert(len(param)==10)
             #param=[wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store]
             event_list=[]
             if(param[0]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[0],device,traffic.wt_load,WRITE=False)))
+                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0],group_id=device,task_id=event.wt_load,multicast=False)))
             if(param[1]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[1],device,traffic.act_fetch,WRITE=False)))
+                event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[1],group_id=device,task_id=event.act_fetch,multicast=False)))
             if(param[2]!=None):
-                event_list.append(env.process(self.tile_comm_process(param[2],wd1,traffic.comm)))
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[2],device,event.wt_load,WRITE=False)))
             if(param[3]!=None):
-                event_list.append(env.process(self.tile_comp_process(param[3])))
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[3],device,event.act_fetch,WRITE=False)))
             if(param[4]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[4],device,traffic.act_store,WRITE=True)))
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
             if(param[5]!=None):
-                event_list.append(env.process(wd1.tile_dram_group_access_process(param[5],device,traffic.act_store,WRITE=True)))
+                #recompute 
+                event_list.append(env.process(self.tile_comp_process(param[5])))
+            if(param[6]!=None):
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[6],device,event.act_store,WRITE=True)))
+            if(param[7]!=None):
+                event_list.append(env.process(wd1.tile_dram_group_access_process(param[7],device,event.act_store,WRITE=True)))
+            
+            if(param[8]!=None):
+                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8],group_id=device,task_id=event.act_store,gather=True)))
+            if(param[9]!=None):
+                event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[9],group_id=device,task_id=event.act_store,gather=True)))
             return event_list
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:#@fangjh21.20230609
