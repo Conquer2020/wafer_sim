@@ -1,115 +1,21 @@
 #### Simpy 事件注册机制
 
-**import** simpy
+```
+strong
+```
 
-**class** comm_overlap():
+Result:
 
-    **def** __init__(self,env) -> None:
+process 1 done @20.000
 
-    self.env=env
+process 2 done @30.000
 
-    self.cp_worker= simpy.Resource(env, capacity=1)
+process overlap_process done @30.000
 
-    self.cm_worker= simpy.Resource(env, capacity=1)
+process 1 done @40.000
 
-    **def** cp_process(self):
+process short_process done @50.000
 
-    '''''
+process 2 done @70.000
 
-    process 1
-
-    '''
-
-    with self.cp_worker.request() as req:
-
-    **yield** req
-
-    **yield** self.env.timeout(20)
-
-    **print** ('process 1 done @{:.3f} '.format(self.env.now))
-
-    **def** cm_process(self):
-
-    '''''
-
-    process 2
-
-    '''
-
-    with self.cm_worker.request() as req:
-
-    **yield** req
-
-    **yield** self.env.timeout(30)
-
-    **print** ('process 2 done @{:.3f} '.format(self.env.now))
-
-    **def** overlap_process(self):
-
-    event_list=[]
-
-    **while** (True):
-
-    event_list.append(self.env.process(self.cp_process()))
-
-    event_list.append(self.env.process(self.cm_process()))
-
-    **yield** simpy.AllOf(env,event_list)
-
-    **print** ('process overlap_process done @{:.3f} '.format(self.env.now))
-
-    **break**
-
-    **def** order_process(self):
-
-    **while** (True):
-
-    **yield** self.env.process(self.cp_process())
-
-    **yield** self.env.process(self.cm_process())
-
-    **print** ('process order_process done @{:.3f} '.format(self.env.now))
-
-    **break**
-
-    **def** short_process(self):
-
-    **while** (True):
-
-    **yield** self.env.timeout(20)
-
-    **yield** self.env.timeout(30)
-
-    **print** ('process short_process done @{:.3f} '.format(self.env.now))
-
-    **break**
-
-**if** __name__ == '__main__':
-
-    env=simpy.Environment()
-
-    test=comm_overlap(env)
-
-    env.process(test.overlap_process())
-
-    env.process(test.order_process())
-
-    env.process(test.short_process())
-
-    env.run(until=100)
-
-**result:**
-
-**process 1 done @20.000 **
-
-**process 2 done @30.000 **
-
-**process overlap_process done @30.000**
-
-**process 1 done @40.000**
-
-**process short_process done @50.000**
-
-**process 2 done @70.000**
-
-**process order_process done @70.000**
+process order_process done @70.000
