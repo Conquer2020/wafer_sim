@@ -49,7 +49,7 @@ if __name__ == '__main__':
     env.process(test.overlap_process())
     env.process(test.order_process())
     env.process(test.short_process())
-    env.run(until=100)strong
+    env.run(until=100)
 ```
 Result:
 
