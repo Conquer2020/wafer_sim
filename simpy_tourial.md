@@ -55,8 +55,7 @@ if __name__ == '__main__':
     env.run(until=100)
 ```
 
-
-#####Result:
+####Result:
 
     process 1 done @20.000
 
