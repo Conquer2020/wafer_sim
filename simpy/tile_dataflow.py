@@ -323,7 +323,6 @@ class Tile():# for compute process
                             raise NotImplementedError
                 else:
                     raise NotImplementedError
-                event_list=execute_template_event(param)
             elif sram1==store_strategy.cache:
                 if tiledram3==store_strategy.ACT_weight:
                     assert(edgedram4==store_strategy.none)
@@ -484,7 +483,7 @@ class Tile():# for compute process
                             raise NotImplementedError
                 else:
                     raise NotImplementedError
-                yield simpy.AllOf(env, event_list)    
+ 
             elif sram1==store_strategy.weight:
                 if tiledram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
@@ -513,9 +512,6 @@ class Tile():# for compute process
                             raise NotImplementedError
                 else:
                     raise NotImplementedError
-                event_list=execute_template_event(param)
-                yield simpy.AllOf(env,event_list)
-
             elif sram1==store_strategy.cache:
                 if tiledram3==store_strategy.ACT_weight:
                     assert(edgedram4==store_strategy.none)
@@ -616,6 +612,7 @@ class Tile():# for compute process
                         else:
                             raise NotImplementedError
                 #TODO
+                event_list=execute_template_recompute_event(param)
                 yield simpy.AllOf(env, event_list)
 
             else:
