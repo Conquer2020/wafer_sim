@@ -1,11 +1,13 @@
 #### Simpy event registration
+
 #### 事件注册机制
+
 ```
 import simpy
 class comm_overlap():
     def __init__(self,env) -> None:
         self.env=env
-        self.cp_worker= simpy.Resource(env, capacity=1)
+        self.cp_worker= simpy.Resource(env, capacity=1)#定义计算和通信process的资源,并发执行的容量为1
         self.cm_worker= simpy.Resource(env, capacity=1)
     def cp_process(self):
         '''
@@ -13,7 +15,7 @@ class comm_overlap():
         '''
         with self.cp_worker.request() as req:
                 yield req
-                yield self.env.timeout(20)
+                yield self.env.timeout(20)#计算时间为20个单位
         print('process 1 done @{:.3f} '.format(self.env.now))
     def cm_process(self):
         '''
@@ -21,14 +23,14 @@ class comm_overlap():
         '''
         with self.cm_worker.request() as req:
                 yield req
-                yield self.env.timeout(30)
+                yield self.env.timeout(30)#通信时间为20个单位
         print('process 2 done @{:.3f} '.format(self.env.now))
     def overlap_process(self):
          event_list=[]
          while(True):
               event_list.append(self.env.process(self.cp_process()))
               event_list.append(self.env.process(self.cm_process()))
-              yield simpy.AllOf(env,event_list)
+              yield simpy.AllOf(env,event_list)#等待两个可以overlap的事件完成
               print('process overlap_process done @{:.3f} '.format(self.env.now))
               break
     def order_process(self):
@@ -51,6 +53,8 @@ if __name__ == '__main__':
     env.process(test.short_process())
     env.run(until=100)
 ```
+
+
 Result:
 
     process 1 done @20.000
