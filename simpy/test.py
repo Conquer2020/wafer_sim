@@ -40,10 +40,18 @@ class comm_overlap():
               yield self.env.timeout(30)
               print('process short_process done @{:.3f} '.format(self.env.now))
               break
+    def test_process(self):
+        while(True):
+              print('process test_process start @{:.3f} '.format(self.env.now))
+              yield self.env.process(self.short_process())
+              yield self.env.process(self.short_process())
+              print('process test_process done @{:.3f} '.format(self.env.now))
+              break   
 if __name__ == '__main__':
     env=simpy.Environment()
     test=comm_overlap(env)
     env.process(test.overlap_process())
     env.process(test.order_process())
     env.process(test.short_process())
-    env.run(until=100)
+    env.process(test.test_process())
+    env.run(until=200)
