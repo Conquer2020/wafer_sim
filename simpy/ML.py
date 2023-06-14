@@ -15,7 +15,7 @@ recompute_strategy=Enum('recompute_strategy',('none','half','all'))
 pipe_strategy=Enum('pipe_strategy',('GPipe','Megatron1F1B','Interleaved1F1B','Cerebras'))
 ZeRO_strategy=Enum('ZeRO_strategy',('none','ZeRO_1','ZeRO_2','ZeRO_3'))
 
-event=Enum('event',('act_store','act_fetch','comm','act_fd','grad_bd','wt_load','wt_store'))
+event=Enum('event',('act_store','act_fetch','comm','act_fd','grad_fetch','grad_store','wt_load','wt_store','opt_load','opt_store','dloss_load','dloss_store'))
 
 def str2openum(op_str):
     if op_str=='Linear':
