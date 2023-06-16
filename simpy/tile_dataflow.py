@@ -23,7 +23,7 @@ class Tile():# for compute process
         self.sram_capacity=sram_capacity_MB
         self.with_dram=with_dram
         self.dram_bw=dram_bw_GB
-        self.dram_capacity=dram_capacity_GB
+        self.tile_dram_capacity=dram_capacity_GB
         self.ifmap_size=0
         self.weight_size=0
         self.ofmap_size=0
@@ -177,7 +177,7 @@ class Tile():# for compute process
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
 
         sram_size=tile.sram_capacity #MB
-        tile_dram_size=tile.dram_capacity*1000 #MB 
+        tile_dram_size=tile.tile_dram_capacity*1000 #MB 
 
         if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
             dataflow0=dataflow.WS
@@ -280,14 +280,14 @@ class Tile():# for compute process
                             param[2]=op.w_s_g_access_m[0]                           
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[2]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/self.sram_capacity)      
+                            param[2]=op.w_s_g_access_m[0]*max(1,self.buffer_bytes*temp_input_size_m/self.sram_capacity)      
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
                             param[2]=op.w_s_g_access_m[0]                            
                         elif dataflow0==dataflow.IS:
-                            param[2]=op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/self.sram_capacity)                           
+                            param[2]=op.w_s_g_access_m[0]*max(1,self.act_bytes*op.intra_act_access_m/self.sram_capacity)                           
                         else:
                             raise NotImplementedError
                 else:
@@ -297,8 +297,8 @@ class Tile():# for compute process
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[3]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[6]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[3]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[6]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
                             param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
@@ -309,8 +309,8 @@ class Tile():# for compute process
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-                            param[3]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[6]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[3]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[6]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
                             param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             param[3]=op.intra_act_access_m
@@ -332,7 +332,7 @@ class Tile():# for compute process
                             param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            param[2]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/self.sram_capacity)
+                            param[2]=op.w_s_g_access_m[0]*max(1,self.buffer_bytes*temp_input_size_m/self.sram_capacity)
                             param[3]=temp_input_size_m
                             param[7]=temp_input_size_m
                             param[8]=mulc(op.o_shape)/1000/1000 #TODO
@@ -341,11 +341,11 @@ class Tile():# for compute process
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
                             param[2]=op.w_s_g_access_m[0]
-                            param[3]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
-                            param[7]=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[3]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            param[7]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
                             param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
-                            param[2]=op.w_s_g_access_m[0]*max(1,op.intra_act_access_m/self.sram_capacity)
+                            param[2]=op.w_s_g_access_m[0]*max(1,self.act_bytes*op.intra_act_access_m/self.sram_capacity)
                             param[3]=op.intra_act_access_m
                             param[7]=op.intra_act_access_m
                             param[8]=mulc(op.o_shape)/1000/1000 #TODO
@@ -359,7 +359,7 @@ class Tile():# for compute process
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)
+                            access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO    
@@ -373,7 +373,7 @@ class Tile():# for compute process
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-                            access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)
+                            access_size_m=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO 
@@ -390,7 +390,7 @@ class Tile():# for compute process
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
-                            access_size_m=temp_input_size_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)
+                            access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)
                             param[0]=op.w_s_g_access_m[0]
                             param[1]=access_size_m
                             param[9]=access_size_m
@@ -398,7 +398,7 @@ class Tile():# for compute process
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=op.mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*len(device)
-                            param[0]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/(self.dram_capacity*1000))
+                            param[0]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/(self.tile_dram_capacity*1000))
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO 
@@ -406,14 +406,14 @@ class Tile():# for compute process
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-                            access_size_m=op.intra_act_access_m*max(1,op.w_s_g_access_m[0]/(self.dram_capacity*1000))*len(device)  
+                            access_size_m=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)  
                             param[0]=op.w_s_g_access_m[0]
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         elif dataflow0==dataflow.IS:
                             access_size_m=op.intra_act_access_m*len(device)
-                            param[0]=op.w_s_g_access_m[0]*max(1,temp_input_size_m/(self.dram_capacity*1000))
+                            param[0]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/(self.tile_dram_capacity*1000))
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO 
@@ -458,8 +458,8 @@ class Tile():# for compute process
             if(param[8]!=None):
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes,group_id=device,task_id=event.act_store,gather=True)))
             return event_list
-        def execute_template_dloss_event(param=[None,None,None,None,None,None,None,None]):  
-            assert(len(param)==8)
+        def execute_template_dloss_event(param=[None,None,None,None,None,None,None,None,None]):  
+            assert(len(param)==9)
             event_list=[]
             if(param[0]!=None):
                 event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes,group_id=device,task_id=event.wt_load,multicast=False)))
@@ -484,7 +484,6 @@ class Tile():# for compute process
             if(param[8]!=None):
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes,group_id=device,task_id=event.grad_store,gather=True)))
             return event_list
-        
         def execute_template_dW_event(param=[None,None,None,None,None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==13)
             event_list=[]
@@ -519,11 +518,11 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[12]*self.full_bytes,group_id=device,task_id=event.wt_store,gather=True)))
             return event_list
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
-
         for op in op_list:
-            re_param=[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm[0] ,None,None]
-            dloss_param=[None,None,None,None,None,None,op.ZeRO_comm_d[1],op.fd_macs_m,op.f_b_u_comm[1],None,None,None,None,None,None]
-            dW_param=[None,None,None,None,None,None,op.ZeRO_comm_d[1],op.fd_macs_m,op.f_b_u_comm[1],None,None,None,None,None,None]
+            #9,9,13
+            re_param    =[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm[0] ,None,None]
+            dloss_param =[None,None,None,None,op.ZeRO_comm_d[1],op.fd_macs_m,op.f_b_u_comm[1],None,None]
+            dW_param    =[None,None,None,None,None,None,op.ZeRO_comm_d[1],op.fd_macs_m,None,None,None,None,None]
             if sram1==store_strategy.ACT_weight:
                 #ideal situation
                 pass
@@ -531,16 +530,17 @@ class Tile():# for compute process
                 if tiledram3==store_strategy.weight:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-
-                        elif dataflow0==dataflow.IS:  
-
+                            re_param[2]=op.w_s_g_access_m[0]         
+                        elif dataflow0==dataflow.IS:   
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            re_param[2]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/self.sram_capacity) 
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-
+                            re_param[2]=op.w_s_g_access_m[0]  
                         elif dataflow0==dataflow.IS:
-                          
+                            re_param[2]=op.w_s_g_access_m[0]*max(1,self.act_bytes*op.intra_act_access_m/self.sram_capacity) 
                         else:
                             raise NotImplementedError
                 else:
@@ -549,17 +549,25 @@ class Tile():# for compute process
                 if tiledram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            re_param[3]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            re_param[7]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
 
                         elif dataflow0==dataflow.IS:
-
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            re_param[3]=temp_input_size_m
+                            re_param[7]=temp_input_size_m
 
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
+                            re_param[3]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            re_param[7]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
 
                         elif dataflow0==dataflow.IS:
-
+                            re_param[3]=op.intra_act_access_m
+                            re_param[7]=op.intra_act_access_m
                         else:
                             raise NotImplementedError
                 else:
@@ -569,17 +577,26 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.none)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-
-
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            re_param[2]=op.w_s_g_access_m[0]
+                            re_param[3]=temp_input_size_m*max(1,self.act_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            re_param[7]=temp_input_size_m*max(1,self.act_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
                         elif dataflow0==dataflow.IS:
-
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            re_param[2]=op.w_s_g_access_m[0]*max(1,self.buffer_bytes*temp_input_size_m/self.sram_capacity)
+                            re_param[3]=temp_input_size_m
+                            re_param[7]=temp_input_size_m
                         elif dataflow0==dataflow.OS:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-
+                            re_param[2]=op.w_s_g_access_m[0]
+                            re_param[3]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
+                            re_param[7]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity)
                         elif dataflow0==dataflow.IS:
-
+                            re_param[2]=op.w_s_g_access_m[0]*max(1,self.act_bytes*op.intra_act_access_m/self.sram_capacity)
+                            re_param[3]=op.intra_act_access_m
+                            re_param[7]=op.intra_act_access_m
                         elif dataflow0==dataflow.OS:
                             raise NotImplementedError
                 elif tiledram3==store_strategy.ACT:
@@ -589,33 +606,57 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
- 
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m    
                         elif dataflow0==dataflow.IS:
-
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            access_size_m=temp_input_size_m*len(device)
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-
+                            access_size_m=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m
 
                         elif dataflow0==dataflow.IS:
-
+                            access_size_m=op.intra_act_access_m*len(device)
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m
                         else:
                             raise NotImplementedError           
                 elif tiledram3==store_strategy.cache:
                     assert(edgedram4==store_strategy.ACT_weight)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)
+                            re_param[0]=op.w_s_g_access_m[0]
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m 
                         elif dataflow0==dataflow.IS:
-
+                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            access_size_m=temp_input_size_m*len(device)
+                            re_param[0]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/(self.tile_dram_capacity*1000))
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
-
+                            access_size_m=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/(self.tile_dram_capacity*1000))*len(device)  
+                            re_param[0]=op.w_s_g_access_m[0]
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m
                         elif dataflow0==dataflow.IS:
-
+                            access_size_m=op.intra_act_access_m*len(device)
+                            re_param[0]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/(self.tile_dram_capacity*1000))
+                            re_param[1]=access_size_m
+                            re_param[8]=access_size_m
                         else:
                             raise NotImplementedError
             else:
