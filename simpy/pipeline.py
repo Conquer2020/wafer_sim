@@ -8,16 +8,16 @@ from wafer_device import Wafer_Device as wd
 from wafer_device import Packet
 from ML import *
 #TODO 修改流水线调度策略
-# reference:Megatron2.0 
+# reference Megatron2.0 
 # @fangjh21.20230602
 
 
 
 class Stage():
     __stage_id=0
-    def __init__(self,tile,env,op_list,last_core_id:Optional[List[int]],\
+    def __init__(self,env,op_list,last_core_id:Optional[List[int]],\
                  cur_core_id:Optional[List[int]],next_core_id:Optional[List[int]])-> None:
-        self.tile=tile
+        self.tile=Tile(env)
         self.op_list=op_list
         self.i_shape=[]
         self.o_shape=[]
@@ -49,7 +49,7 @@ class Stage():
                 #print('time:{},start forward'.format(round(env.now, 2)))
                 #TODO 修改为数据流执行
                 #yield env.timeout(20)
-                yield env.process(Tile.execute_forward_process(self.tile,env,self.map_ana,self.cur_core_id,self.op_list,noc))
+                yield env.process(self.tile.execute_forward_process(env,self.map_ana,self.cur_core_id,self.op_list,noc))
                 self.trace.append((t_last,env.now,0))
             if self.next_core_id!=None and self.next_core_id!=[]:
                 task_info=self.__class__.__stage_id
@@ -70,7 +70,7 @@ class Stage():
                 assert(self.o_shape==pks.shape)
                 t_last=env.now
                 #TODO 修改为数据流执行
-                yield env.process(Tile.execute_backward_process(self.tile,env,self.map_ana,self.cur_core_id,self.op_list,noc))
+                yield env.process(self.tile.execute_backward_process(env,self.map_ana,self.cur_core_id,self.op_list,noc))
                 self.trace.append((t_last,env.now,1))
             if self.last_core_id!=None and self.last_core_id!=[]:
                 task_info=self.__class__.__stage_id
@@ -106,7 +106,7 @@ class Stages():
                 self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
             else:
                 raise NotImplementedError
-            self.stages[i].map_ana=Tile.mapping_analysis(self.stages[i].tile,self.stages[i].stage_info,\
+            self.stages[i].map_ana=self.tile.mapping_analysis(self.stages[i].tile,self.stages[i].stage_info,\
                                                          self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)
     def pipeline_execute_forward_process(self):
         def pro():

@@ -9,7 +9,7 @@ class comm_overlap():
         self.cm_worker= simpy.Resource(env, capacity=1)
     def cp_process(self):
         '''
-        process 1
+        process 1 
         '''
         with self.cp_worker.request() as req:
                 yield req

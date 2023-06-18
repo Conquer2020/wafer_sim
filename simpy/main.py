@@ -13,7 +13,7 @@ if __name__ == '__main__':
     #define simpy environment
     env=simpy.Environment()
     #define hardware
-    tile=Tile(with_dram=True)
+    #tile=Tile(with_dram=True)
     wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[2,2],tile_intra_shape=[2,2])
     #print(wd.device_list())
     #define op and ML compute graph

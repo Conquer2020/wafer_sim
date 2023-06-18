@@ -13,7 +13,7 @@ class Packet():
     def _size_MB(self):
         temp=mulc(self.shape)
         return temp/1000/1000
-    def __str__(self):
+    def __str__(self): 
         return 'Packet:(id:{},shape:{},size:{} MByte,meta:{})'.format(self.id,self.shape,self.size,self.meta_data)
 
     @staticmethod

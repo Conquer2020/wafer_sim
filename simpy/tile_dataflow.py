@@ -513,7 +513,7 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[11]*self.full_bytes*len(device),group_id=device,task_id=event.opt_store,gather=True)))
             if(param[12]!=None):
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[12]*self.full_bytes*len(device),group_id=device,task_id=event.wt_store,gather=True)))
-            return event_list
+            return event_list 
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:
             #9,9,13
