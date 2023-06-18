@@ -56,7 +56,7 @@ class Tile():# for compute process
         #TODO Mixed-precision is popular in  ML training process.
         #However,many AI archs have their float numberbprecision like TF32(Nvdia),CFP16(Dojo),etc.
         #@fangjh21.20230606
-        print('Mixed-precision')
+        #print('Mixed-precision')
         self.cp_bytes=BYTES['FP16']
         self.act_bytes=BYTES['FP16'] if self.opt!=OPTIMIZER.NONE else BYTES['NONE']
         w=BYTES['FP16']+BYTES['FP32']

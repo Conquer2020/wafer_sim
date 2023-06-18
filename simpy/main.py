@@ -8,59 +8,73 @@ from ML import *
 
 import simpy
 import time
+import math
 
 if __name__ == '__main__':
-    #define simpy environment
+    
+    #1.define simpy environment
     env=simpy.Environment()
-    #define hardware
-    #tile=Tile(with_dram=True)
-    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[2,2],tile_intra_shape=[2,2])
-    #print(wd.device_list())
-    #define op and ML compute graph
 
-    #TODO stages,device_group=map(graph,device)
-    batch_size=4
-    op1=OpNode(op_type=OP.Linear,op_param=[batch_size,256,128,512],hint_name='s1')
-    op2=OpNode(op_type=OP.Linear,op_param=[batch_size,64,256,128],hint_name='s2')
-    op3=OpNode(op_type=OP.Linear,op_param=[batch_size,128,64,256],hint_name='s3')
-    op4=OpNode(op_type=OP.Linear,op_param=[batch_size,1024,128,64],hint_name='s4')
-    gp=CompGraph()
-    gp.AddEdge(op1)
-    gp.AddEdge(op2)
-    gp.AddEdge(op3,op2)
-    gp.AddEdge(op4,op1)
-    gp.AddEdge(op3,op4)
+    #2.define hardware
+    #defualt:tile=Tile(with_dram=True)
+    #256x16 tile
+    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[64,4],tile_intra_shape=[4,4])
+    tiles_id=wd.device_list() 
 
-    #mapping by hand
-    tiles_1=[0,1,2,3]
-    tiles_2=[4,5]
-    tiles_3=[6,7,10,11,14,15]
-    tiles_4=[12,13]
-    op1.dpmap(device_id=tiles_1,parallel_dim=[1])
-    op2.dpmap(device_id=tiles_2,parallel_dim=[1])
-    op3.dpmap(device_id=tiles_3,parallel_dim=[1])
-    op4.dpmap(device_id=tiles_4,parallel_dim=[1])
-    CompGraph.gwrite(gp,path='mljson',name='gh.json')
-    #00
-    stg0=pipe.Stage(tile,env,[op1],last_core_id=[],cur_core_id=tiles_1,next_core_id=tiles_2)
-    stg1=pipe.Stage(tile,env,[op2],last_core_id=tiles_1,cur_core_id=tiles_2,next_core_id=tiles_3)
-    stg2=pipe.Stage(tile,env,[op3],last_core_id=tiles_2,cur_core_id=tiles_3,next_core_id=tiles_4)
-    stg3=pipe.Stage(tile,env,[op4],last_core_id=tiles_3,cur_core_id=tiles_4,next_core_id=[])
-    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=1,stages=[stg0,stg1,stg2,stg3],noc=wd)
+    #read ml compute graph from json file or define ml compute graph by yourself
+    gp=CompGraph.gread(path='mljson',name='gpt-3.json')
+    batch_size=gp.root.param_dim[0]
+
+
+    #3.mapping by hand
+    #TODO mapping with graph arch info
+
+    STG_NUM=16
+    tiles=[]
+    for i in range(STG_NUM):  
+        tiles.append(tiles_id[i::STG_NUM])
+    Layers_num=len(gp)
+    nums_per_stg=math.ceil(Layers_num/STG_NUM)
+
+    j=0
+    ops=[]
+    ops_per_stg=[]
+    for i,op_name in enumerate(gp.op_dict):
+        d_size=len(tiles[j])
+        dp=2
+        mp=d_size//2
+        assert(mp*dp==d_size)
+        op=gp.op_dict[op_name]
+        op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
+        if i % nums_per_stg==nums_per_stg-1:
+            j+=1
+            ops.append(op)
+            ops_per_stg.append(ops)
+            ops=[]
+    if ops!=[]:
+        ops_per_stg[-1].append(op)
+
+    #CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
+
+    #4.pipeline define
+    stgs=[]
+    for i in range(STG_NUM):
+        last_core_id=[] if i==0 else tiles[i-1]
+        cur_core_id=tiles[i]
+        next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
+        stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
+    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=1,stages=stgs,noc=wd)
     stages.pipeline()
 
-    #TODO 
-    #1.原语构建 ,SRAM,DRAM单独act访存构建
-    #2.并行解析，插入通信原语
-    #3.图解析   
+    #5.simpy run  
     sim_start_t=time.time()
     print('start simpy simulation...')
     env.run(until=2000)
     sim_end_t=time.time()
     print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
     stages.pipe_status(path='./pic/')
-    for index,dram_res in enumerate(wd.edge_dram_resource):
-        wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
+    #for index,dram_res in enumerate(wd.edge_dram_resource):
+    #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
 
 
 

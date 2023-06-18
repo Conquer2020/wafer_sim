@@ -14,8 +14,8 @@ class OpNode(Oppd):
     def __str__(self):
         nxt_lt_id=[it.hint_name for it in self.nxt_lt]
         if self.dpmap_flag:
-            return '{}:({},{}),parallel_dim={},device={},child_nodes:{}\n'.\
-                format(self.hint_name,self.type,self.param_dim,self.parallel_dim,self.device,nxt_lt_id)
+            return '{}:({},{}),p_sgy={},device={},child_nodes:{}\n'.\
+                format(self.hint_name,self.type,self.param_dim,self.p_sgy,self.device,nxt_lt_id)
         else:
             return '{}:({},{}),child_nodes:{}\n'.\
                 format(self.hint_name,self.type,self.param_dim,nxt_lt_id)
@@ -28,7 +28,7 @@ class OpNode(Oppd):
         op_dict['param_dim']=str(op.param_dim)
         op_dict['child_nodes']=str(nxt_lt_id)
         if op.dpmap_flag:
-            op_dict['parallel_dim']=str(op.parallel_dim)
+            op_dict['p_sgy']=str(op.p_sgy)
             op_dict['device']=str(op.device)
         return op_dict
     
@@ -63,6 +63,8 @@ class CompGraph():
         Compute_Graph_str='CompGraph:{}'.format(self.name)
         Compute_Graph_str+=',Root:{}\n'.format(self.root.hint_name)
         return Compute_Graph_str
+    def __len__(self):
+        return len(self.op_dict)
     @staticmethod
     def _graph2dict(CompGraph):
         graph_dict={}
@@ -101,7 +103,7 @@ class CompGraph():
         whole_path_filename = os.path.join(path, name)
         with open(whole_path_filename, mode="r", encoding='utf-8') as f:
             gpdict=json.load(f)
-        print(gpdict)
+        #print(gpdict)
         gp=CompGraph()
         root_index=''
         i=0
@@ -127,7 +129,7 @@ class CompGraph():
                         op_param=str2list(op_dict[op_key])
                     elif op_key=='child_nodes':
                         op_next_op=str2strlist(op_dict[op_key])
-                    elif op_key=='parallel_dim':
+                    elif op_key=='p_sgy':
                         op_plm_dim=str2list(op_dict[op_key])
                     elif op_key=='device':
                         op_device=str2list(op_dict[op_key])
