@@ -53,7 +53,7 @@ if __name__ == '__main__':
     #write graph to file
     #CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
 
-    #4.pipeline define
+    #4.pipeline define and set
     stgs=[]
     for i in range(STG_NUM):
         last_core_id=[] if i==0 else tiles[i-1]
@@ -66,7 +66,8 @@ if __name__ == '__main__':
     stages.pipeline_set()
 
     #5.simpy run  
-    stages.simpy_run(until=20000)
+    one_week_ms=24*60*60*7*1000*1000*1000
+    stages.simpy_run(until=one_week_ms)
 
     #6. log and info output
     #stages.pipe_status(path='./pic/')

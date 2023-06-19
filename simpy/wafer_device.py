@@ -264,7 +264,8 @@ class Wafer_Device():
         #TODO 优化
         if type(access_size_MB) is list:
             temp=mulc(access_size_MB)
-            access_size_MB=temp/1000/1000   
+            access_size_MB=temp/1000/1000  
+            #print(access_size_MB) 
         while(True):
             yield self.env.process(self.edge_dram_read_process(access_size_MB,group_id[0],task_id))
             g_size=len(group_id)  
@@ -301,7 +302,7 @@ class Wafer_Device():
             return NotImplemented
         visualize_resource(res_data.data,name=path+res_type+name,max_resource=max_resource)
 
-    def ALL_REDUCE_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=True):
+    def ALL_REDUCE_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语及其优化
         #yield self.env.timeout(5)
         group_size=len(group_id)
@@ -326,7 +327,7 @@ class Wafer_Device():
                 print('All-Gather {}/{} phase'.format(i+1,group_size-1))
         if DEBUG_MODE:
                 print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
-    def ALL_2_ALL_process(self,comm_size,group_id:List[int]):
+    def ALL_2_ALL_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语
         yield self.env.timeout(5)
     def STAGE_PASS_process(self,comm_size:Union[int,Packet],group_a:List[int],group_b:List[int],task_id,DEBUG_MODE=False):

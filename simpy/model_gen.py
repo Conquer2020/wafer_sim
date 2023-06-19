@@ -3,7 +3,7 @@ from ML import *
 
 #here is a sample Tranformer model for test
 batch_size=4
-L,B,S,H,A=96,3200000,2048,12288,96
+L,B,S,H,A=96,32,2048,12288,96
 ops=[]
 gp=CompGraph()
 for i in range(L):

@@ -124,6 +124,7 @@ class Tile():# for compute process
         this is the tile communication process
         '''
         comm_mbytes=0
+        print(comm_op)
         #here if communication can not overlap by compute time,the 'cm_worker' should to be 'cp_worker'
         with (self.cm_worker.request() if overlap else self.cp_worker.request()) as req:
                 yield req       
@@ -263,12 +264,12 @@ class Tile():# for compute process
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:#@fangjh21.20230609
             access_size_m=0
-            param=[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm[0] ,None,None,None,None]
+            param=[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm_d[0] ,None,None,None,None]
             #param[0],param[1] edge dram read
             #param[2],param[3] tile dram read
             #param[4]=op.ZeRO_comm_d[0] 
             #param[5]=op.fd_macs_m
-            #param[6]=op.f_b_u_comm[0] 
+            #param[6]=op.f_b_u_comm_d[0] 
             #param[7],param[8] tile dram write
             #param[9],param[10] edge dram write
             if sram1==store_strategy.ACT_weight:
@@ -476,7 +477,7 @@ class Tile():# for compute process
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm,True)))
+                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm)))
             if(param[7]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.grad_store,WRITE=True)))
             if(param[8]!=None):
@@ -505,7 +506,7 @@ class Tile():# for compute process
                 event_list.append(env.process(self.tile_comp_process(param[7])))
             if(param[8]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[8],wd1,event.comm,True)))
+                event_list.append(env.process(self.tile_comm_process(param[8],wd1,event.comm)))
             if(param[9]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[9]*self.full_bytes,device,event.opt_store,WRITE=True)))
             if(param[10]!=None):
@@ -518,8 +519,8 @@ class Tile():# for compute process
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
         for op in op_list:
             #9,9,13
-            re_param    =[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm[0] ,None,None]
-            dloss_param =[None,None,None,None,op.ZeRO_comm_d[1],op.fd_macs_m,op.f_b_u_comm[1],None,None]
+            re_param    =[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm_d[0] ,None,None]
+            dloss_param =[None,None,None,None,op.ZeRO_comm_d[1],op.fd_macs_m,op.f_b_u_comm_d[1],None,None]
             dW_param    =[None,None,None,None,None,None,None,op.fd_macs_m,None,None,None,None,None]
             if sram1==store_strategy.ACT_weight:
                 #ideal situation
@@ -798,7 +799,7 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[3]*self.full_bytes,device,event.grad_fetch,WRITE=False)))
             if(param[4]!=None):
                 #DP communication 
-                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm,True)))
             if(param[5]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[5]*self.full_bytes,device,event.wt_load,WRITE=True)))
             if(param[6]!=None):
@@ -807,7 +808,7 @@ class Tile():# for compute process
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
 
         for op in op_list:
-            update_param=[None,None,None,None,op.f_b_u_comm[2],None,None]
+            update_param=[None,None,None,None,op.f_b_u_comm_d[2],None,None]
             if sram1==store_strategy.ACT_weight:
                 #ideal situation
                 pass

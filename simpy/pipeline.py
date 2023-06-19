@@ -113,7 +113,7 @@ class Stages():
             stage_len=len(self.stages)
             for i in range(stage_len):
                 yield self.env.process(self.stages[i].stage_forward_process(self.f_q[i],self.f_q[i+1],self.env,self.noc))
-            #print('finish forward @ {:.3f} ms'.format(self.env.now))
+            print('finish forward @ {:.3f} ms'.format(self.env.now))
         yield self.env.process(pro())
         
     def pipeline_execute_backward_process(self): 
@@ -122,7 +122,7 @@ class Stages():
             for i in range(stage_len-1,-1,-1):
                 yield self.env.process(self.stages[i].stage_backward_process(self.b_q[i],self.b_q[i+1],self.env,self.noc))
             #TODO bug  
-            #print('finish backward @ {:.3f} ms'.format(self.env.now))
+            print('finish backward @ {:.3f} ms'.format(self.env.now))
         with self.f_q[len(self.stages)].get() as get:
             a=yield get
             yield self.b_q[len(self.stages)].put(a)
@@ -132,11 +132,11 @@ class Stages():
         for i in range(self.pipe_times):
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
-            print('222')
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
                 yield put
-                print(i_shape)
+                #print(i_shape)
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info))
+                #print(i_shape)
 
     def pipeline_set(self): 
         print('----------pipe_info----------')
@@ -145,8 +145,8 @@ class Stages():
             self.f_q.append(simpy.Store(self.env,capacity=1))
             self.b_q.append(simpy.Store(self.env,capacity=1))
         self.env.process(self.start())
-        print('111')
         for i in range(self.pipe_times):
+            #print('333')
             self.env.process(self.pipeline_execute_forward_process())
             self.env.process(self.pipeline_execute_backward_process())
             #self.env.timeout(1e-11)
