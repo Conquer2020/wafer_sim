@@ -7,7 +7,7 @@ import pipeline as pipe
 from ML import *
 
 import simpy
-import time
+
 import math
 
 if __name__ == '__main__':
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     #read ml compute graph from json file or define ml compute graph by yourself
     gp=CompGraph.gread(path='mljson',name='gpt-3.json')
     batch_size=gp.root.param_dim[0]
-
+    #print(batch_size)
 
     #3.mapping by hand
     #TODO mapping with graph arch info
@@ -63,16 +63,14 @@ if __name__ == '__main__':
         next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
 
-    print(len(stgs))
+    #print(len(stgs))
     stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=batch_size//10,stages=stgs,noc=wd)
-    stages.pipeline()
+    stages.pipeline_set()
 
     #5.simpy run  
-    sim_start_t=time.time()
-    print('start simpy simulation...')
-    env.run(until=2000)
-    sim_end_t=time.time()
-    print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
+    stages.simpy_run(until=20000)
+
+    #6. log and info output
     #stages.pipe_status(path='./pic/')
     #for index,dram_res in enumerate(wd.edge_dram_resource):
     #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))

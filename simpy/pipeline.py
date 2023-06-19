@@ -1,5 +1,6 @@
 import simpy
 import math
+import time
 from typing import List,Optional
 
 from util import *
@@ -112,7 +113,7 @@ class Stages():
             stage_len=len(self.stages)
             for i in range(stage_len):
                 yield self.env.process(self.stages[i].stage_forward_process(self.f_q[i],self.f_q[i+1],self.env,self.noc))
-            #print('finish forward @ {:.3f} us'.format(self.env.now))
+            #print('finish forward @ {:.3f} ms'.format(self.env.now))
         yield self.env.process(pro())
         
     def pipeline_execute_backward_process(self): 
@@ -120,8 +121,8 @@ class Stages():
             stage_len=len(self.stages)
             for i in range(stage_len-1,-1,-1):
                 yield self.env.process(self.stages[i].stage_backward_process(self.b_q[i],self.b_q[i+1],self.env,self.noc))
-            #TODO slove bug  
-            #print('finish backward @ {:.3f} us'.format(self.env.now))
+            #TODO bug  
+            #print('finish backward @ {:.3f} ms'.format(self.env.now))
         with self.f_q[len(self.stages)].get() as get:
             a=yield get
             yield self.b_q[len(self.stages)].put(a)
@@ -135,7 +136,9 @@ class Stages():
                 yield put
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info))
 
-    def pipeline(self):
+    def pipeline_set(self): 
+        print('----------pipe_info----------')
+        print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
         for _ in range(len(self.stages)+1):
             self.f_q.append(simpy.Store(self.env,capacity=1))
             self.b_q.append(simpy.Store(self.env,capacity=1))
@@ -144,6 +147,13 @@ class Stages():
             self.env.process(self.pipeline_execute_forward_process())
             self.env.process(self.pipeline_execute_backward_process())
             #self.env.timeout(1e-11)
+    def simpy_run(self,until=2000):
+        print('----------simpy_run----------')
+        sim_start_t=time.time()
+        print('start simpy simulation...')
+        self.env.run(until=until)
+        sim_end_t=time.time()
+        print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
     def pipe_status(self,path,draw_pipe=True):
         all_trace=[]
         name=str(self.pipe_type)
@@ -152,7 +162,7 @@ class Stages():
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=name)
         pipe_endtime=all_trace[0][-1][1]
-        print('ml {} training pipeline endtime:{:.3f} us'.format(name,pipe_endtime))
+        print('ml {} training pipeline endtime:{:.3f} ms'.format(name,pipe_endtime))
         return pipe_endtime
 
 
