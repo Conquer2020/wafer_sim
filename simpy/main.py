@@ -28,7 +28,6 @@ if __name__ == '__main__':
 
     #3.mapping by hand
     #TODO mapping with graph arch info
-
     STG_NUM=16
     tiles=[]
     for i in range(STG_NUM):  
@@ -63,6 +62,8 @@ if __name__ == '__main__':
         cur_core_id=tiles[i]
         next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
+
+    print(len(stgs))
     stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=batch_size//10,stages=stgs,noc=wd)
     stages.pipeline()
 
