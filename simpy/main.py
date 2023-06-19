@@ -72,7 +72,7 @@ if __name__ == '__main__':
     env.run(until=2000)
     sim_end_t=time.time()
     print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
-    stages.pipe_status(path='./pic/')
+    #stages.pipe_status(path='./pic/')
     #for index,dram_res in enumerate(wd.edge_dram_resource):
     #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
 

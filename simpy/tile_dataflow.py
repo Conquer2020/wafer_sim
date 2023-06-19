@@ -233,6 +233,7 @@ class Tile():# for compute process
             assert(len(param)==11)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
+            #index_of_nooverlap_comm=-1
             if(param[0]!=None):
                 event_list.append(env.process(wd1.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes*len(device),group_id=device,task_id=event.wt_load,multicast=False)))
             if(param[1]!=None):
@@ -423,12 +424,11 @@ class Tile():# for compute process
                 raise NotImplementedError
             #please notice that the bytes number is considered in execute_template_event function
             event_list=execute_template_event(param)
-            print(len(event_list))
-            mp_comm_event=event_list[6]
-            del event_list[6]
+            #mp_comm_event=event_list[6]
+            #del event_list[6]
             #in code order execution
             yield simpy.AllOf(env, event_list)
-            yield mp_comm_event
+            #yield mp_comm_event
     def execute_backward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
         def execute_template_recompute_event(param=[None,None,None,None,None,None,None,None,None]):
             assert(len(param)==9)
@@ -476,7 +476,7 @@ class Tile():# for compute process
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm,True)))
             if(param[7]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.grad_store,WRITE=True)))
             if(param[8]!=None):
@@ -505,7 +505,7 @@ class Tile():# for compute process
                 event_list.append(env.process(self.tile_comp_process(param[7])))
             if(param[8]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[8],wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[8],wd1,event.comm,True)))
             if(param[9]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[9]*self.full_bytes,device,event.opt_store,WRITE=True)))
             if(param[10]!=None):
