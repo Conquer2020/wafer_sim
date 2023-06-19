@@ -63,7 +63,7 @@ if __name__ == '__main__':
         cur_core_id=tiles[i]
         next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
-    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=1,stages=stgs,noc=wd)
+    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=batch_size//10,stages=stgs,noc=wd)
     stages.pipeline()
 
     #5.simpy run  

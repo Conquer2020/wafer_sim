@@ -137,8 +137,8 @@ class Tile():# for compute process
                         pass
                     else:
                         pass
-    @staticmethod
-    def mapping_analysis(tile,stage_info,op_list:List[OpNode],wd1:wd):
+
+    def mapping_analysis(self,stage_info,op_list:List[OpNode],wd1:wd):
         #init 
         #device_gp=device
         acc_op_wsg_size=0
@@ -149,7 +149,7 @@ class Tile():# for compute process
         recomputes2=recompute_strategy.none
         tiledram3=store_strategy.none
         edgedram4=store_strategy.none
-        ZeRO=tile.ZeRO
+        ZeRO=self.ZeRO
         [pipe_strategy,info1,info2]=stage_info
         input_act_size_m=mulc(op_list[0].i_shape)/1000/1000
         #ouput_act_size=mulc(op_list[-1].o_shape)
@@ -158,9 +158,9 @@ class Tile():# for compute process
         # @fangjh21.20230602
         for op in op_list:
             op.set_ZeRO(ZeRO)
-            temp=np.array(op.w_s_g_size_m)*np.array(tile.wsg_store_bytes)
+            temp=np.array(op.w_s_g_size_m)*np.array(self.wsg_store_bytes)
             acc_op_wsg_size+=mulc(temp.tolist())+0 #TODO 计算所需冗余空间
-            acc_op_intra_act_size+=op.intra_act_size_m*tile.act_bytes
+            acc_op_intra_act_size+=op.intra_act_size_m*self.act_bytes
             
         act_times_coe=0
         if pipe_strategy==pipe_strategy.GPipe:
@@ -176,8 +176,8 @@ class Tile():# for compute process
         mem_occupy_by_wsg=acc_op_wsg_size
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
 
-        sram_size=tile.sram_capacity_m #MB
-        tile_dram_size=tile.tile_dram_capacity_m*1000 #MB 
+        sram_size=self.sram_capacity_m #MB
+        tile_dram_size=self.tile_dram_capacity_m*1000 #MB 
 
         if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
             dataflow0=dataflow.WS
@@ -187,7 +187,7 @@ class Tile():# for compute process
         elif mem_occupy_by_wsg<sram_size: 
             dataflow0=dataflow.WS
             sram1=store_strategy.weight
-            if tile.with_dram:
+            if self.with_dram:
                 assert(wd1.dram_per_tile_resource!=[])
                 if mem_occupy_by_act_stage<tile_dram_size:
                     recomputes2=recompute_strategy.none
@@ -243,13 +243,13 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[3]*self.act_bytes,device,event.act_fetch,WRITE=False)))
             if(param[4]!=None):
                 #ZeRO communication 
-                event_list.append(env.process(self.tile_comm_process(param[4]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
             if(param[5]!=None):
                 #compute 
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[6]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm)))
             if(param[7]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.act_store,WRITE=True)))
             if(param[8]!=None):
@@ -279,7 +279,7 @@ class Tile():# for compute process
                         if dataflow0==dataflow.WS:
                             param[2]=op.w_s_g_access_m[0]                           
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[2]=op.w_s_g_access_m[0]*max(1,self.buffer_bytes*temp_input_size_m/self.sram_capacity_m)      
                         else:
                             raise NotImplementedError
@@ -296,12 +296,12 @@ class Tile():# for compute process
                 if tiledram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[3]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
                             param[6]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
                             param[7]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[3]=temp_input_size_m
                             param[6]=temp_input_size_m
                             param[7]=mulc(op.o_shape)/1000/1000 #TODO
@@ -325,13 +325,13 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.none)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[2]=op.w_s_g_access_m[0]
                             param[3]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity_m)
                             param[7]=temp_input_size_m*max(1,op.w_s_g_access_m[0]/self.sram_capacity_m)
                             param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[2]=op.w_s_g_access_m[0]*max(1,self.buffer_bytes*temp_input_size_m/self.sram_capacity_m)
                             param[3]=temp_input_size_m
                             param[7]=temp_input_size_m
@@ -358,13 +358,13 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.tile_dram_capacity_m)
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO    
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m
                             param[1]=access_size_m
                             param[9]=access_size_m
@@ -389,14 +389,14 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.ACT_weight)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.tile_dram_capacity_m)
                             param[0]=op.w_s_g_access_m[0]
                             param[1]=access_size_m
                             param[9]=access_size_m
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m
                             param[0]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/self.tile_dram_capacity_m)
                             param[1]=access_size_m
@@ -423,6 +423,7 @@ class Tile():# for compute process
                 raise NotImplementedError
             #please notice that the bytes number is considered in execute_template_event function
             event_list=execute_template_event(param)
+            print(len(event_list))
             mp_comm_event=event_list[6]
             del event_list[6]
             #in code order execution
@@ -443,13 +444,13 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[3]*self.act_bytes,device,event.act_fetch,WRITE=False)))
             if(param[4]!=None):
                 #ZeRO communication 
-                event_list.append(env.process(self.tile_comm_process(param[4]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
             if(param[5]!=None):
                 #compute 
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[6]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm)))
             if(param[7]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes*len(device),device,event.act_store,WRITE=True)))
             if(param[8]!=None):
@@ -469,13 +470,13 @@ class Tile():# for compute process
 
             if(param[4]!=None):
                 #ZeRO communication 
-                event_list.append(env.process(self.tile_comm_process(param[4]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
             if(param[5]!=None):
                 #compute 
                 event_list.append(env.process(self.tile_comp_process(param[5])))
             if(param[6]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[6]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm)))
             if(param[7]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.grad_store,WRITE=True)))
             if(param[8]!=None):
@@ -498,13 +499,13 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[5]*self.full_bytes,device,event.opt_load,WRITE=False)))
             if(param[6]!=None):
                 #ZeRO communication 
-                event_list.append(env.process(self.tile_comm_process(param[6]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[6],wd1,event.comm)))
             if(param[7]!=None):
                 #compute 
                 event_list.append(env.process(self.tile_comp_process(param[7])))
             if(param[8]!=None):
                 #communication 
-                event_list.append(env.process(self.tile_comm_process(param[8]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[8],wd1,event.comm)))
             if(param[9]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[9]*self.full_bytes,device,event.opt_store,WRITE=True)))
             if(param[10]!=None):
@@ -531,7 +532,7 @@ class Tile():# for compute process
                             dloss_param[2]=op.w_s_g_access_m[0] 
                             dW_param[5]=op.w_s_g_access_m[1]
                         elif dataflow0==dataflow.IS:   
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             total_size_m=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/self.sram_capacity_m) 
                             re_param[2]=total_size_m
                             total_size_m=op.w_s_g_access_m[0]*max(1,self.act_bytes*op.intra_act_access_m/self.sram_capacity_m) 
@@ -556,7 +557,7 @@ class Tile():# for compute process
                 if tiledram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             re_param[3]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
                             re_param[7]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
                             access_size_m=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
@@ -565,7 +566,7 @@ class Tile():# for compute process
                             dW_param[3]=op.intra_act_access_m*max(1,self.buffer_bytes*op.intra_act_access_m/self.sram_capacity_m)
                             dW_param[4]=op.intra_act_access_m
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             re_param[3]=temp_input_size_m
                             re_param[7]=temp_input_size_m
                             dloss_param[3]=op.intra_act_access_m
@@ -599,7 +600,7 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.none)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             re_param[2]=op.w_s_g_access_m[0]
                             re_param[3]=temp_input_size_m*max(1,self.act_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
                             re_param[7]=temp_input_size_m*max(1,self.act_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
@@ -613,7 +614,7 @@ class Tile():# for compute process
                             dW_param[10]=op.w_s_g_access_m[2]
 
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             re_param[2]=op.w_s_g_access_m[0]*max(1,self.buffer_bytes*temp_input_size_m/self.sram_capacity_m)
                             re_param[3]=temp_input_size_m
                             re_param[7]=temp_input_size_m
@@ -666,7 +667,7 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.tile_dram_capacity_m)
                             re_param[1]=access_size_m
                             re_param[8]=access_size_m  
@@ -677,7 +678,7 @@ class Tile():# for compute process
                             dW_param[1]=op.intra_act_access_m
 
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             re_param[1]=temp_input_size_m
                             re_param[8]=temp_input_size_m
                             dloss_param[1]=op.intra_act_access_m
@@ -710,7 +711,7 @@ class Tile():# for compute process
                     assert(edgedram4==store_strategy.ACT_weight)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.tile_dram_capacity_m)
                             re_param[0]=op.w_s_g_access_m[0]
                             re_param[1]=access_size_m
@@ -725,7 +726,7 @@ class Tile():# for compute process
                             dW_param[11]=op.w_s_g_access_m[1]
                             dW_param[12]=op.w_s_g_access_m[2]
                         elif dataflow0==dataflow.IS:
-                            temp_input_size_m=op.mulc(op.i_shape)/1000/1000
+                            temp_input_size_m=mulc(op.i_shape)/1000/1000
                             access_size_m=temp_input_size_m
                             re_param[0]=op.w_s_g_access_m[0]*max(1,self.act_bytes*temp_input_size_m/self.tile_dram_capacity_m)
                             re_param[1]=access_size_m
@@ -797,7 +798,7 @@ class Tile():# for compute process
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[3]*self.full_bytes,device,event.grad_fetch,WRITE=False)))
             if(param[4]!=None):
                 #DP communication 
-                event_list.append(env.process(self.tile_comm_process(param[4]*self.comm_bytes,wd1,event.comm)))
+                event_list.append(env.process(self.tile_comm_process(param[4],wd1,event.comm)))
             if(param[5]!=None):
                 event_list.append(env.process(wd1.tile_dram_group_access_process(param[5]*self.full_bytes,device,event.wt_load,WRITE=True)))
             if(param[6]!=None):

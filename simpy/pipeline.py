@@ -106,8 +106,7 @@ class Stages():
                 self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
             else:
                 raise NotImplementedError
-            self.stages[i].map_ana=self.tile.mapping_analysis(self.stages[i].tile,self.stages[i].stage_info,\
-                                                         self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)
+            self.stages[i].map_ana=self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].op_list,self.noc)
     def pipeline_execute_forward_process(self):
         def pro():
             stage_len=len(self.stages)
