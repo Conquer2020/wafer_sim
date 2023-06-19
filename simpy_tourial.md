@@ -58,6 +58,7 @@ if __name__ == '__main__':
     env.process(test.order_process())
     env.process(test.short_process())
     env.process(test.test_process())
+    #运行200时间单位
     env.run(until=200)
 
 ```
@@ -65,6 +66,7 @@ if __name__ == '__main__':
 #### Result:
 
 ```
+#process print
 process test_process start @0.000 
 process 1 done @20.000 
 process 2 done @30.000 
