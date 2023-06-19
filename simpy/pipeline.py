@@ -132,8 +132,10 @@ class Stages():
         for i in range(self.pipe_times):
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
+            print('222')
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
                 yield put
+                print(i_shape)
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info))
 
     def pipeline_set(self): 
@@ -143,6 +145,7 @@ class Stages():
             self.f_q.append(simpy.Store(self.env,capacity=1))
             self.b_q.append(simpy.Store(self.env,capacity=1))
         self.env.process(self.start())
+        print('111')
         for i in range(self.pipe_times):
             self.env.process(self.pipeline_execute_forward_process())
             self.env.process(self.pipeline_execute_backward_process())

@@ -1,13 +1,9 @@
 
 from wafer_device import Wafer_Device 
-from tile_dataflow import Tile
-from comp_graph import CompGraph,OpNode
+from comp_graph import CompGraph
 import pipeline as pipe
-
 from ML import *
-
 import simpy
-
 import math
 
 if __name__ == '__main__':
@@ -29,6 +25,7 @@ if __name__ == '__main__':
     #3.mapping by hand
     #TODO mapping with graph arch info
     STG_NUM=16
+    DATA_PARALLELISM=16
     tiles=[]
     for i in range(STG_NUM):  
         tiles.append(tiles_id[i::STG_NUM])
@@ -40,8 +37,9 @@ if __name__ == '__main__':
     ops_per_stg=[]
     for i,op_name in enumerate(gp.op_dict):
         d_size=len(tiles[j])
-        dp=2
-        mp=d_size//2
+        dp=DATA_PARALLELISM
+        mp=d_size//dp
+        #make sure that product of model parallelism and data parallelism is equal to numbers of device 
         assert(mp*dp==d_size)
         op=gp.op_dict[op_name]
         op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
@@ -52,7 +50,7 @@ if __name__ == '__main__':
             ops=[]
     if ops!=[]:
         ops_per_stg[-1].append(op)
-
+    #write graph to file
     #CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
 
     #4.pipeline define
