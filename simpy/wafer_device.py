@@ -63,7 +63,6 @@ class Wafer_Device():
         self.tile_dram_bw_GB=tile_dram_bw_GB
         self.tile_dram_capacity_GB=tile_dram_capacity_GB
 
-
         self.edge_die_dram_bw_GB=edge_die_dram_bw_GB
         self.clk_freq_Ghz=clk_freq_Ghz
         self.noc_response_latency_ms=0
@@ -105,7 +104,6 @@ class Wafer_Device():
             for _ in range(x0*x1-1):
                 self.link_resource.append(Resource(self.env,capacity=1))
         print('noc link resource is created...')
-        
         for _ in range(x1):
             self.edge_dram_resource.append(dram_model('DDR',self.env,self.edge_die_dram_bw_GB))#left dram
         for _ in range(x1):
@@ -117,9 +115,6 @@ class Wafer_Device():
             for _ in range(tile_dram_num):
                 self.dram_per_tile_resource.append(dram_model('3DDRAM',self.env,self.tile_dram_bw_GB,self.tile_dram_capacity_GB))
             print('tile dram resource is created...')
-
-
-
     def Manhattan_hops(self,src_id,dis_id):
         x=self.tile_intra_shape[0]*self.tile_inter_shape[0]
         y=self.tile_inter_shape[1]*self.tile_intra_shape[1]

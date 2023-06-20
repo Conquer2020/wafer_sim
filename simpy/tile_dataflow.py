@@ -14,7 +14,7 @@ from op_pd import CommOp
 class Tile():# for compute process
     def __init__(self,env,tile_name='tx8',
                  sram_capacity_MB=3,macs=4000,freq_GHz=1,\
-                 with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
+                 with_dram=False,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
                     opt=OPTIMIZER,ZeRO=ZeRO_strategy.ZeRO_2) -> None:
         #info
         self.tile_name=tile_name
@@ -784,7 +784,7 @@ class Tile():# for compute process
                 raise NotImplementedError
             
             if recomputes2==recompute_strategy.all:
-                self.update_event=analysis_template_recompute_event(re_param)
+                self.recompute_event=analysis_template_recompute_event(re_param)
             self.dloss_event=analysis_template_dloss_event(dloss_param)
             self.dW_event=analysis_template_dW_event(dW_param)
     def analysis_weight_update_process(self,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):

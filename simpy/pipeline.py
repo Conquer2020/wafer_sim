@@ -165,7 +165,7 @@ class Stages():
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=name)
         pipe_endtime=all_trace[0][-1][1]
-        print('ml {} training pipeline endtime:{:.3f} ms'.format(name,pipe_endtime))
+        print('{} ml training pipeline endtime {:.3f} days[{:.3f}s]'.format(name,pipe_endtime/1000/60/60/24,pipe_endtime/1000))
         return pipe_endtime
 
 
