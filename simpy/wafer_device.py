@@ -264,7 +264,7 @@ class Wafer_Device():
         #TODO 优化
         if type(access_size_MB) is list:
             temp=mulc(access_size_MB)
-            access_size_MB=temp/1000/1000  
+            access_size_MB=temp/1000/1000*2  
             #print(access_size_MB) 
         while(True):
             yield self.env.process(self.edge_dram_read_process(access_size_MB,group_id[0],task_id))
@@ -279,7 +279,7 @@ class Wafer_Device():
         #TODO 优化
         if type(access_size_MB) is list:
             temp=mulc(access_size_MB)
-            access_size_MB=temp/1000/1000 
+            access_size_MB=temp/1000/1000*2
         while(True):
             g_size=len(group_id)
             if gather:  

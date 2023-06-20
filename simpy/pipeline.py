@@ -140,6 +140,7 @@ class Stages():
     def pipeline_set(self): 
         print('----------pipe_info----------')
         print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
+        print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
         for _ in range(len(self.stages)+1):
             self.f_q.append(simpy.Store(self.env,capacity=1))
             self.b_q.append(simpy.Store(self.env,capacity=1))

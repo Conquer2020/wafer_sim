@@ -2,7 +2,7 @@ from comp_graph import CompGraph,OpNode
 from ML import *
 
 #here is a sample Tranformer model for test
-L,B,S,H,A=96,32,256,122,96
+L,B,S,H,A=96,1564,2048,12288,96
 ops=[]
 gp=CompGraph()
 for i in range(L):

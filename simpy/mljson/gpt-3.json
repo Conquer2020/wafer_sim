@@ -3,482 +3,482 @@
  "root_name":"t0",
  "t0":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t1']"
  },
  "t1":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t2']"
  },
  "t2":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t3']"
  },
  "t3":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t4']"
  },
  "t4":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t5']"
  },
  "t5":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t6']"
  },
  "t6":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t7']"
  },
  "t7":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t8']"
  },
  "t8":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t9']"
  },
  "t9":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t10']"
  },
  "t10":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t11']"
  },
  "t11":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t12']"
  },
  "t12":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t13']"
  },
  "t13":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t14']"
  },
  "t14":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t15']"
  },
  "t15":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t16']"
  },
  "t16":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t17']"
  },
  "t17":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t18']"
  },
  "t18":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t19']"
  },
  "t19":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t20']"
  },
  "t20":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t21']"
  },
  "t21":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t22']"
  },
  "t22":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t23']"
  },
  "t23":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t24']"
  },
  "t24":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t25']"
  },
  "t25":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t26']"
  },
  "t26":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t27']"
  },
  "t27":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t28']"
  },
  "t28":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t29']"
  },
  "t29":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t30']"
  },
  "t30":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t31']"
  },
  "t31":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t32']"
  },
  "t32":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t33']"
  },
  "t33":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t34']"
  },
  "t34":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t35']"
  },
  "t35":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t36']"
  },
  "t36":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t37']"
  },
  "t37":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t38']"
  },
  "t38":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t39']"
  },
  "t39":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t40']"
  },
  "t40":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t41']"
  },
  "t41":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t42']"
  },
  "t42":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t43']"
  },
  "t43":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t44']"
  },
  "t44":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t45']"
  },
  "t45":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t46']"
  },
  "t46":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t47']"
  },
  "t47":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t48']"
  },
  "t48":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t49']"
  },
  "t49":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t50']"
  },
  "t50":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t51']"
  },
  "t51":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t52']"
  },
  "t52":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t53']"
  },
  "t53":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t54']"
  },
  "t54":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t55']"
  },
  "t55":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t56']"
  },
  "t56":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t57']"
  },
  "t57":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t58']"
  },
  "t58":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t59']"
  },
  "t59":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t60']"
  },
  "t60":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t61']"
  },
  "t61":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t62']"
  },
  "t62":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t63']"
  },
  "t63":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t64']"
  },
  "t64":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t65']"
  },
  "t65":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t66']"
  },
  "t66":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t67']"
  },
  "t67":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t68']"
  },
  "t68":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t69']"
  },
  "t69":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t70']"
  },
  "t70":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t71']"
  },
  "t71":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t72']"
  },
  "t72":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t73']"
  },
  "t73":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t74']"
  },
  "t74":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t75']"
  },
  "t75":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t76']"
  },
  "t76":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t77']"
  },
  "t77":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t78']"
  },
  "t78":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t79']"
  },
  "t79":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t80']"
  },
  "t80":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t81']"
  },
  "t81":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t82']"
  },
  "t82":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t83']"
  },
  "t83":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t84']"
  },
  "t84":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t85']"
  },
  "t85":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t86']"
  },
  "t86":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t87']"
  },
  "t87":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t88']"
  },
  "t88":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t89']"
  },
  "t89":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t90']"
  },
  "t90":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t91']"
  },
  "t91":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t92']"
  },
  "t92":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t93']"
  },
  "t93":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t94']"
  },
  "t94":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t95']"
  },
  "t95":{
   "type":"Transformer",
-  "param_dim":"[32, 256, 122, 96]",
+  "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"[]"
  }
 }

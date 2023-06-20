@@ -43,6 +43,7 @@ if __name__ == '__main__':
         assert(mp*dp==d_size)
         op=gp.op_dict[op_name]
         op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
+        print(op.fd_macs_m)
         if i % nums_per_stg==nums_per_stg-1:
             j+=1
             ops.append(op)
@@ -50,7 +51,7 @@ if __name__ == '__main__':
             ops=[]
     if ops!=[]:
         ops_per_stg[-1].append(op)
-    #write graph to file
+    #write graph with device to file
     #CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
 
     #4.pipeline define and set
@@ -62,15 +63,19 @@ if __name__ == '__main__':
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
 
     #print(len(stgs))
-    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=batch_size//3,stages=stgs,noc=wd)
+    #micro_batch=batch_size//STG_NUM
+    micro_batch=batch_size//3
+    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=micro_batch,stages=stgs,noc=wd)
     stages.pipeline_set()
 
     #5.simpy run  
-    three_weeks_ms=24*60*60*7*1000*3
-    stages.simpy_run(until=three_weeks_ms)
+    one_weeks_ms=24*60*60*7*1000
+    #print(one_weeks_ms)
+    scale_sim_time=one_weeks_ms*1000000
+    stages.simpy_run(until=scale_sim_time)
 
     #6. log and info output
-    stages.pipe_status(path='./pic/')
+    #stages.pipe_status(path='./pic/')
     #for index,dram_res in enumerate(wd.edge_dram_resource):
     #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
 
