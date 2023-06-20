@@ -62,12 +62,12 @@ if __name__ == '__main__':
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
 
     #print(len(stgs))
-    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=batch_size//10,stages=stgs,noc=wd)
+    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=batch_size//3,stages=stgs,noc=wd)
     stages.pipeline_set()
 
     #5.simpy run  
-    one_week_ms=24*60*60*7*1000*1000*1000
-    stages.simpy_run(until=one_week_ms)
+    three_weeks_ms=24*60*60*7*1000*3
+    stages.simpy_run(until=three_weeks_ms)
 
     #6. log and info output
     #stages.pipe_status(path='./pic/')

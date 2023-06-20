@@ -26,23 +26,23 @@ class Packet():
         return Packet(id=id,shape=shape)
     
 class dram_model():
-    def __init__(self,name,env,bw_GB=256,capacity_GB=16*100,read_latency=0,write_latency=0) -> None:
+    def __init__(self,name,env,bw_GB=256,capacity_GB=16*100,read_latency_ms=0,write_latency_ms=0) -> None:
         self.name=name
         self.bw_GB=bw_GB
-        self.read_latency=read_latency
-        self.write_latency=write_latency
+        self.read_latency=read_latency_ms
+        self.write_latency=write_latency_ms
         
         #TODO consider the dram capacity influence for total ml network
         #@fangjh21.20230602: related to embedding op when ml network is recommoned system like DLRM ,etc.
         self.capacity=capacity_GB 
         self.env=env
         self.access_resource=Resource(self.env,capacity=1)
-    def access_process(self,data_size_MB,task_id=1,write=True,DEBUG_MODE=True):
+    def access_process(self,data_size_MB,task_id=1,write=True,DEBUG_MODE=False):
         with self.access_resource.request() as req:
             yield req 
-            if DEBUG_MODE:
-                print("{}:{} access  processing...  @ {:.3f} ms".format(task_id,self.name,self.env.now))
-            latency=1000*data_size_MB/self.bw_GB
+            #if DEBUG_MODE:
+            #    print("{}:{} access  processing...  @ {:.3f} ms".format(task_id,self.name,self.env.now))
+            latency=data_size_MB/self.bw_GB
             latency+=self.write_latency if write else self.read_latency
             yield self.env.timeout(latency)
 
@@ -66,8 +66,8 @@ class Wafer_Device():
 
         self.edge_die_dram_bw_GB=edge_die_dram_bw_GB
         self.clk_freq_Ghz=clk_freq_Ghz
-        self.noc_response_latency=0
-        self.dram_response_latency=0
+        self.noc_response_latency_ms=0
+        self.dram_response_latency_ms=0
         self.route_XY='X'
 
         #simpy env and resource define @fangjh21.20230602
@@ -211,9 +211,9 @@ class Wafer_Device():
                     if self.is_inter_link(i):
                         if DEBUG_MODE:
                             print('task {} cross the inter noc, link_id={}'.format(task_id,i))
-                        yield self.env.timeout(self.noc_response_latency+1000*comm_size_MB/self.tile_inter_noc_bw_GB)
+                        yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_inter_noc_bw_GB)
                     else:
-                        yield self.env.timeout(self.noc_response_latency+1000*comm_size_MB/self.tile_intra_noc_bw_GB)
+                        yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_intra_noc_bw_GB)
             if DEBUG_MODE:
                 print("task {} end noc @ {:.3f} ms".format(task_id,self.env.now))
             break
@@ -241,14 +241,14 @@ class Wafer_Device():
         row_line=int(src_id /(x0*x1))+1
         des_id=row_line*x0*x1-1 if row_line*x0*x1-1-src_id<x0*x1/2 else (row_line-1)*x0*x1
         while(True):
-            if DEBUG_MODE:
-                print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
             dram_index=int(des_id/(x1*x0)) if des_id % (x1*x0) ==0 else int(des_id/ x1*x0)+x1*x0
             yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=False))
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,des_id,src_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))
-            if DEBUG_MODE:
-                print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
             break
     def tile_dram_access_process(self,access_size_MB,src_id,task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         while(True):
@@ -274,6 +274,7 @@ class Wafer_Device():
                 yield self.env.process(\
                    self.noc_process(comm_size,group_id[i-1],group_id[i],task_id))
             break
+        print("task {} end dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
     def dram_write_group_process(self,access_size_MB:Union[int,List[int]],group_id:List[int],task_id,gather=True):
         #TODO 优化
         if type(access_size_MB) is list:
@@ -307,26 +308,26 @@ class Wafer_Device():
         #yield self.env.timeout(5)
         group_size=len(group_id)
         chunk_size=comm_size/group_size
-        if DEBUG_MODE:
-                print("ALL_REDUCE task {} start @ {:.3f} ms".format(task_id,self.env.now))
+        #if DEBUG_MODE:
+        #        print("ALL_REDUCE task {} start @ {:.3f} ms".format(task_id,self.env.now))
         for i in range(group_size-1):
             event_list=[]
             for id_idx in range(group_size-1):
                 event_list.append(self.env.process(self.noc_process(chunk_size,group_id[id_idx],group_id[id_idx+1])))
             event_list.append(self.env.process(self.noc_process(chunk_size,group_id[-1],group_id[0])))
             yield simpy.AllOf(self.env, event_list)
-            if DEBUG_MODE:
-                print('Reduce-Scatter {}/{} phase'.format(i+1,group_size-1))
+            #if DEBUG_MODE:
+            #    print('Reduce-Scatter {}/{} phase'.format(i+1,group_size-1))
         for i in range(group_size-1):
             event_list=[]
             for id_idx in range(group_size-1):
                 event_list.append(self.env.process(self.noc_process(chunk_size,group_id[id_idx],group_id[id_idx+1])))
             event_list.append(self.env.process(self.noc_process(chunk_size,group_id[-1],group_id[0])))
             yield simpy.AllOf(self.env, event_list)
-            if DEBUG_MODE:
-                print('All-Gather {}/{} phase'.format(i+1,group_size-1))
-        if DEBUG_MODE:
-                print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print('All-Gather {}/{} phase'.format(i+1,group_size-1))
+        #if DEBUG_MODE:
+            #    print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
     def ALL_2_ALL_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语
         yield self.env.timeout(5)
@@ -341,11 +342,11 @@ class Wafer_Device():
         index=distance.index(min(distance))
         src=group_a[index // len(group_b)]
         des= group_b[index % len(group_b)]
-        if DEBUG_MODE:
-            print('Group_A {} to Group_B stage pass {}'.format(src,des))
+        #if DEBUG_MODE:
+            #print('Group_A {} to Group_B stage pass {}'.format(src,des))
         while(True):
-            if DEBUG_MODE:
-                print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             for i in group_a:
                 if i!=src:
                     yield self.env.process(self.noc_process(comm_size/len(group_a),i,src,task_id,DEBUG_MODE))
@@ -353,8 +354,8 @@ class Wafer_Device():
             for j in group_b:
                 if j!=des:
                     yield self.env.process(self.noc_process(comm_size/len(group_b),des,j,task_id,DEBUG_MODE))
-            if DEBUG_MODE:
-                print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             break
 
 

@@ -124,7 +124,7 @@ class Tile():# for compute process
         this is the tile communication process
         '''
         comm_mbytes=0
-        print(comm_op)
+        #print(comm_op)
         #here if communication can not overlap by compute time,the 'cm_worker' should to be 'cp_worker'
         with (self.cm_worker.request() if overlap else self.cp_worker.request()) as req:
                 yield req       
@@ -300,24 +300,24 @@ class Tile():# for compute process
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[3]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
-                            param[6]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
-                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[7]=temp_input_size_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             temp_input_size_m=mulc(op.i_shape)/1000/1000
                             param[3]=temp_input_size_m
-                            param[6]=temp_input_size_m
-                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[7]=temp_input_size_m
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         else:
                             raise NotImplementedError
                     else:#without recompute strategy
                         if dataflow0==dataflow.WS:
                             param[3]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
-                            param[6]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
-                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[7]=op.intra_act_access_m*max(1,self.buffer_bytes*op.w_s_g_access_m[0]/self.sram_capacity_m)
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.IS:
                             param[3]=op.intra_act_access_m
-                            param[6]=op.intra_act_access_m
-                            param[7]=mulc(op.o_shape)/1000/1000 #TODO
+                            param[7]=op.intra_act_access_m
+                            param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         else:
                             raise NotImplementedError
                 else:

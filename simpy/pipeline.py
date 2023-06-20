@@ -129,14 +129,13 @@ class Stages():
             yield self.env.process(pro())
             
     def start(self):
+        #TODO 修改 DP相关
         for i in range(self.pipe_times):
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
                 yield put
-                #print(i_shape)
-                yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info))
-                #print(i_shape)
+                yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
 
     def pipeline_set(self): 
         print('----------pipe_info----------')
