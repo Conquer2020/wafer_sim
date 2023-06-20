@@ -70,7 +70,7 @@ if __name__ == '__main__':
     stages.simpy_run(until=three_weeks_ms)
 
     #6. log and info output
-    #stages.pipe_status(path='./pic/')
+    stages.pipe_status(path='./pic/')
     #for index,dram_res in enumerate(wd.edge_dram_resource):
     #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
 
