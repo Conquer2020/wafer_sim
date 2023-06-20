@@ -14,7 +14,7 @@ from op_pd import CommOp
 class Tile():# for compute process
     def __init__(self,env,tile_name='tx8',
                  sram_capacity_MB=3,macs=4000,freq_GHz=1,\
-                 with_dram=False,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
+                 with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
                     opt=OPTIMIZER,ZeRO=ZeRO_strategy.ZeRO_2) -> None:
         #info
         self.tile_name=tile_name
