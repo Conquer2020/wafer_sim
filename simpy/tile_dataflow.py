@@ -51,7 +51,11 @@ class Tile():# for compute process
         self.env=env
         self.cp_worker= simpy.Resource(env, capacity=1)
         self.cm_worker= simpy.Resource(env, capacity=1)
-
+        self.forward_event=[]
+        self.dloss_event=[]
+        self.recompute_event=[]
+        self.dw_event=[]
+        self.update_event=[]
     def __set_bytes(self):
         #TODO Mixed-precision is popular in  ML training process.
         #However,many AI archs have their float numberbprecision like TF32(Nvdia),CFP16(Dojo),etc.
@@ -139,7 +143,7 @@ class Tile():# for compute process
                     else:
                         pass
 
-    def mapping_analysis(self,stage_info,op_list:List[OpNode],wd1:wd):
+    def mapping_analysis(self,stage_info,device:List[int],op_list:List[OpNode],wd1:wd):
         #init 
         #device_gp=device
         acc_op_wsg_size=0
@@ -227,10 +231,15 @@ class Tile():# for compute process
                 recomputes2=recompute_strategy.all
                 tiledram3=store_strategy.cache
                 edgedram4=store_strategy.ACT_weight
-        return  dataflow0,sram1,recomputes2,tiledram3,edgedram4
+
+        map_ana=[dataflow0,sram1,recomputes2,tiledram3,edgedram4]
+        self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
+        self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)
+        self.analysis_weight_update_process(self.env,map_ana,device,op_list,wd1)
+        return  map_ana
     
-    def execute_forward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
-        def execute_template_event(param=[None,None,None,None,None,None,None,None,None,None,None]):
+    def analysis_forward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
+        def analysis_template_event(param=[None,None,None,None,None,None,None,None,None,None,None]):
             assert(len(param)==11)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
@@ -424,14 +433,11 @@ class Tile():# for compute process
             else:
                 raise NotImplementedError
             #please notice that the bytes number is considered in execute_template_event function
-            event_list=execute_template_event(param)
-            #mp_comm_event=event_list[6]
-            #del event_list[6]
-            #in code order execution
-            yield simpy.AllOf(env, event_list)
-            #yield mp_comm_event
-    def execute_backward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
-        def execute_template_recompute_event(param=[None,None,None,None,None,None,None,None,None]):
+            self.forward_event=analysis_template_event(param)
+            #yield simpy.AllOf(env, event_list)
+
+    def analysis_backward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
+        def analysis_template_recompute_event(param=[None,None,None,None,None,None,None,None,None]):
             assert(len(param)==9)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
@@ -457,7 +463,7 @@ class Tile():# for compute process
             if(param[8]!=None):
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes*len(device),group_id=device,task_id=event.act_store,gather=True)))
             return event_list
-        def execute_template_dloss_event(param=[None,None,None,None,None,None,None,None,None]):  
+        def analysis_template_dloss_event(param=[None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==9)
             event_list=[]
             if(param[0]!=None):
@@ -483,7 +489,7 @@ class Tile():# for compute process
             if(param[8]!=None):
                 event_list.append(env.process(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes*len(device),group_id=device,task_id=event.grad_store,gather=True)))
             return event_list
-        def execute_template_dW_event(param=[None,None,None,None,None,None,None,None,None,None,None,None,None]):  
+        def analysis_template_dW_event(param=[None,None,None,None,None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==13)
             event_list=[]
             if(param[0]!=None):
@@ -778,15 +784,11 @@ class Tile():# for compute process
                 raise NotImplementedError
             
             if recomputes2==recompute_strategy.all:
-                re_event=execute_template_recompute_event(re_param)
-                yield simpy.AllOf(env, re_event)
-            dloss_event=execute_template_dloss_event(dloss_param)
-            dW_event=execute_template_dW_event(dW_param)
-            yield simpy.AllOf(env,dloss_event)
-            yield simpy.AllOf(env,dW_event)
-
-    def execute_weight_update_process(self,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
-        def execute_template_event(param=[None,None,None,None,None,None,None]):
+                self.update_event=analysis_template_recompute_event(re_param)
+            self.dloss_event=analysis_template_dloss_event(dloss_param)
+            self.dW_event=analysis_template_dW_event(dW_param)
+    def analysis_weight_update_process(self,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
+        def analysis_template_event(param=[None,None,None,None,None,None,None]):
             assert(len(param)==7)
             event_list=[]
             if(param[0]!=None):
@@ -846,10 +848,15 @@ class Tile():# for compute process
                     update_param[6]=op.w_s_g_access_m[0]
             else:
                 raise NotImplementedError
-            update_event=execute_template_event(update_param)
-            yield simpy.AllOf(env,update_event)
+            self.update_event=analysis_template_event(update_param)
 
-
-
-
+    def execute_forward_process(self):
+        yield simpy.AllOf(self.env,self.forward_event)
+    def execute_backward_process(self):
+        yield simpy.AllOf(self.env,self.recompute_event)
+        yield simpy.AllOf(self.env,self.dloss_event)
+        yield simpy.AllOf(self.env,self.dw_event)
+    def execute_update_process(self):
+        yield simpy.AllOf(self.env,self.update_event)
+    
 

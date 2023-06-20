@@ -43,7 +43,7 @@ if __name__ == '__main__':
         assert(mp*dp==d_size)
         op=gp.op_dict[op_name]
         op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
-        print(op.fd_macs_m)
+        #print(op.fd_macs_m)
         if i % nums_per_stg==nums_per_stg-1:
             j+=1
             ops.append(op)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     stages.simpy_run(until=scale_sim_time)
 
     #6. log and info output
-    #stages.pipe_status(path='./pic/')
+    stages.pipe_status(path='./pic/')
     #for index,dram_res in enumerate(wd.edge_dram_resource):
     #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
 
