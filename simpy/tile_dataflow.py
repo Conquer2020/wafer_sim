@@ -122,7 +122,9 @@ class Tile():# for compute process
             exetime=2*macs_m/self.TOPS/1000 # us to ms
         with self.cp_worker.request() as req:
                 yield req
+                #print("tile_comp_process start @ {:.3f} ms".format(self.env.now))
                 yield self.env.timeout(exetime)
+                #print("tile_comp_process end   @ {:.3f} ms".format(self.env.now))
     def tile_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:event=event.comm,overlap=False):
         '''
         this is the tile communication process
