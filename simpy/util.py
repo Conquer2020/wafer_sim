@@ -106,7 +106,7 @@ def visualize_resource(data:List,name,clear_redundance=True,max_resource=256,ave
         for i in range(leng):
             if i not in del_list:
                 new_list.append(occupy_list[i])
-
+    #print(data_list)  
     if ave_unit_ms!=1:
         list_ave=[]
         occupy_time=0
@@ -123,7 +123,8 @@ def visualize_resource(data:List,name,clear_redundance=True,max_resource=256,ave
                 occupy_time=data[1]-data[0]
     data_list=list_ave if ave_unit_ms!=1 else new_list
     #[(start_time,end_time,resource_occupy)]
-    #print(data_list)  
+    print(data_list)  
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
     data0=0

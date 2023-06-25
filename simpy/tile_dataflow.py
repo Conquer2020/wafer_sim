@@ -4,7 +4,7 @@ from  util import BaseEnum as Enum
 from typing import List,Optional,Union
 from util import *
 from wafer_device import Wafer_Device as wd
-from wafer_device import Packet
+
 
 import numpy as np
 from ML import *
@@ -54,7 +54,7 @@ class Tile():# for compute process
         self.forward_event=[]
         self.dloss_event=[]
         self.recompute_event=[]
-        self.dw_event=[]
+        self.dW_event=[]
         self.update_event=[]
     def __set_bytes(self):
         #TODO Mixed-precision is popular in  ML training process.
@@ -151,6 +151,7 @@ class Tile():# for compute process
         acc_op_wsg_size=0
         acc_op_intra_act_size=0
         #acc_op_output_act_size=0 #mulc(op_list[-1].i_shape) no store
+        #print(len(op_list))
         dataflow0=dataflow.WS
         sram1=store_strategy.cache
         recomputes2=recompute_strategy.none
@@ -435,7 +436,7 @@ class Tile():# for compute process
             else:
                 raise NotImplementedError
             #please notice that the bytes number is considered in execute_template_event function
-            self.forward_event=analysis_template_event(param)
+            self.forward_event.append(analysis_template_event(param))
 
     def analysis_backward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
         def analysis_template_recompute_event(param=[None,None,None,None,None,None,None,None,None]):
@@ -463,6 +464,8 @@ class Tile():# for compute process
                 event_list.append(wd1.tile_dram_group_access_process(param[7]*self.act_bytes*len(device),device,event.act_store,WRITE=True))
             if(param[8]!=None):
                 event_list.append(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes*len(device),group_id=device,task_id=event.act_store,gather=True))
+            if event_list==[]:
+                event_list=[None]
             return event_list
         def analysis_template_dloss_event(param=[None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==9)
@@ -489,6 +492,8 @@ class Tile():# for compute process
                 event_list.append(wd1.tile_dram_group_access_process(param[7]*self.act_bytes,device,event.grad_store,WRITE=True))
             if(param[8]!=None):
                 event_list.append(wd1.dram_write_group_process(access_size_MB=param[8]*self.act_bytes*len(device),group_id=device,task_id=event.grad_store,gather=True))
+            if event_list==[]:
+                event_list=[None]
             return event_list
         def analysis_template_dW_event(param=[None,None,None,None,None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==13)
@@ -522,8 +527,11 @@ class Tile():# for compute process
                 event_list.append(wd1.dram_write_group_process(access_size_MB=param[11]*self.full_bytes*len(device),group_id=device,task_id=event.opt_store,gather=True))
             if(param[12]!=None):
                 event_list.append(wd1.dram_write_group_process(access_size_MB=param[12]*self.full_bytes*len(device),group_id=device,task_id=event.wt_store,gather=True))
+            if event_list==[]:
+                event_list=[None]
             return event_list 
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=map_ana
+
         for op in op_list:
             #9,9,13
             re_param    =[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm_d[0] ,None,None]
@@ -785,9 +793,11 @@ class Tile():# for compute process
                 raise NotImplementedError
             
             if recomputes2==recompute_strategy.all:
-                self.recompute_event=analysis_template_recompute_event(re_param)
-            self.dloss_event=analysis_template_dloss_event(dloss_param)
-            self.dW_event=analysis_template_dW_event(dW_param)
+                self.recompute_event.append(analysis_template_recompute_event(re_param))
+            else:
+                self.recompute_event.append(None)
+            self.dloss_event.append(analysis_template_dloss_event(dloss_param))
+            self.dW_event.append(analysis_template_dW_event(dW_param))
     def analysis_weight_update_process(self,env,map_ana,device:List[int],op_list:List[OpNode],wd1:wd):
         def analysis_template_event(param=[None,None,None,None,None,None,None]):
             assert(len(param)==7)
@@ -849,25 +859,30 @@ class Tile():# for compute process
                     update_param[6]=op.w_s_g_access_m[0]
             else:
                 raise NotImplementedError
-            self.update_event=analysis_template_event(update_param)
+            self.update_event.append(analysis_template_event(update_param))
 
     def execute_forward_process(self):
-        #execute_event=[self.env.process(event) for event in self.forward_event]
-        #yield simpy.AnyOf(self.env,execute_event)
-        yield self.env.timeout(5)
+        for events in self.forward_event:
+            execute_event=[self.env.process(event) for event in events]
+            yield simpy.AnyOf(self.env,execute_event)
     def execute_backward_process(self):
-        yield self.env.timeout(10)
-        '''
-        execute_event=[self.env.process(event) for event in self.recompute_event]
-        yield simpy.AnyOf(self.env,execute_event)
-        execute_event=[self.env.process(event) for event in self.dloss_event]
-        yield simpy.AnyOf(self.env,execute_event)
-        execute_event=[self.env.process(event) for event in self.dw_event]
-        yield simpy.AnyOf(self.env,execute_event)
-        '''
+        #yield self.env.timeout(10)
+        print(self.recompute_event)
+        print(self.dloss_event)
+        print(self.dW_event)
+        for index,_ in enumerate(self.dloss_event):
+            if self.recompute_event[index]!=None:
+                execute_event=[self.env.process(event) for event in self.recompute_event[index]]
+                yield simpy.AnyOf(self.env,execute_event)
+            execute_event=[self.env.process(event) for event in self.dloss_event[index]]
+            yield simpy.AnyOf(self.env,execute_event)
+            execute_event=[self.env.process(event) for event in self.dW_event[index]]
+            yield simpy.AnyOf(self.env,execute_event)
+        
     def execute_update_process(self):
-        execute_event=[self.env.process(event) for event in self.update_event]
-        yield simpy.AnyOf(self.env,execute_event)
+        for events in self.update_event:
+            execute_event=[self.env.process(event) for event in events]
+            yield simpy.AnyOf(self.env,execute_event)
 
     
 

@@ -262,14 +262,14 @@ class Wafer_Device():
             access_size_MB=temp/1000/1000*2  
             #print(access_size_MB) 
         while(True):
-            print("task {} start dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
+            #print("task {} start dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
             yield self.env.process(self.edge_dram_read_process(access_size_MB,group_id[0],task_id))
             g_size=len(group_id)  
             for i in range(1,g_size):
                 comm_size=access_size_MB/g_size if not multicast else access_size_MB
                 yield self.env.process(\
                    self.noc_process(comm_size,group_id[i-1],group_id[i],task_id))
-            print("task {} end dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
+            #print("task {} end dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
             break
     def dram_write_group_process(self,access_size_MB:Union[int,List[int]],group_id:List[int],task_id,gather=True):
         #TODO 优化
@@ -329,6 +329,8 @@ class Wafer_Device():
         yield self.env.timeout(5)
     def STAGE_PASS_process(self,comm_size:Union[int,Packet],group_a:List[int],group_b:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语
+        yield self.env.timeout(5)
+        '''
         if type(comm_size) is Packet:
             comm_size=comm_size.size
         distance=[]
@@ -353,7 +355,8 @@ class Wafer_Device():
             #if DEBUG_MODE:
             #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             break
-
+            
+        '''
 
 if __name__ == '__main__':
     Debug=True

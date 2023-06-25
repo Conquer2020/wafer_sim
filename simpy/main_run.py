@@ -43,10 +43,10 @@ if __name__ == '__main__':
         assert(mp*dp==d_size)
         op=gp.op_dict[op_name]
         op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
+        ops.append(op)
         #print(op.fd_macs_m)
         if i % nums_per_stg==nums_per_stg-1:
             j+=1
-            ops.append(op)
             ops_per_stg.append(ops)
             ops=[]
     if ops!=[]:
@@ -60,6 +60,7 @@ if __name__ == '__main__':
         last_core_id=[] if i==0 else tiles[i-1]
         cur_core_id=tiles[i]
         next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
+        #print(len(ops_per_stg[i]))
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
 
     #print(len(stgs))

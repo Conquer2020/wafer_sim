@@ -34,6 +34,6 @@ def test(env):
     return env.process(my_process(env))
 if __name__ == '__main__':
     env=simpy.Environment()
-    #print(gen_event(env))
-    env.process(execute(env,gen_event(env)))
+    event=gen_event(env)
+    #env.process(execute(env,event))
     env.run(until=200)

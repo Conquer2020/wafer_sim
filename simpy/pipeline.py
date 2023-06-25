@@ -49,7 +49,7 @@ class Stage():
                 t_last=env.now
                 #print('time:{},start forward'.format(round(env.now, 2)))
                 #TODO 修改为数据流执行
-                #yield env.timeout(20)
+                yield env.timeout(20)
                 yield env.process(self.tile.execute_forward_process())
                 self.trace.append((t_last,env.now,0))
             if self.next_core_id!=None and self.next_core_id!=[]:
@@ -113,7 +113,7 @@ class Stages():
             stage_len=len(self.stages)
             for i in range(stage_len):
                 yield self.env.process(self.stages[i].stage_forward_process(self.f_q[i],self.f_q[i+1],self.env,self.noc))
-                print('stage {} @ {:.3f} ms'.format(i,self.env.now))
+                #print('stage {} @ {:.3f} ms'.format(i,self.env.now))
             print('finish forward @ {:.3f} ms'.format(self.env.now))
         yield self.env.process(pro())
         
@@ -136,6 +136,7 @@ class Stages():
             i_shape=self.stages[0].i_shape
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
                 yield put
+                #yield self.env.timeout(0)
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
                 
 
@@ -163,6 +164,8 @@ class Stages():
         name=str(self.pipe_type)
         for stage in self.stages:
             all_trace.append(stage.trace)
+        with open(path+'trace.log', 'w') as f:
+            f.write(str(all_trace))
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=name)
         pipe_endtime=all_trace[0][-1][1]
