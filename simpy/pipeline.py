@@ -113,6 +113,7 @@ class Stages():
             stage_len=len(self.stages)
             for i in range(stage_len):
                 yield self.env.process(self.stages[i].stage_forward_process(self.f_q[i],self.f_q[i+1],self.env,self.noc))
+                print('stage {} @ {:.3f} ms'.format(i,self.env.now))
             print('finish forward @ {:.3f} ms'.format(self.env.now))
         yield self.env.process(pro())
         
@@ -134,8 +135,9 @@ class Stages():
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
-                yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
                 yield put
+                yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
+                
 
     def pipeline_set(self): 
         print('----------pipe_info----------')
@@ -146,10 +148,9 @@ class Stages():
             self.b_q.append(simpy.Store(self.env,capacity=1))
         self.env.process(self.start())
         for i in range(self.pipe_times):
-            #print('333')
-            #self.env.process(self.pipeline_execute_forward_process())
-            #self.env.process(self.pipeline_execute_backward_process())
-            self.env.timeout(1e-11)
+            self.env.process(self.pipeline_execute_forward_process())
+            self.env.process(self.pipeline_execute_backward_process())
+            #self.env.timeout(1e-11)
     def simpy_run(self,until=2000):
         print('----------simpy_run----------')
         sim_start_t=time.time()

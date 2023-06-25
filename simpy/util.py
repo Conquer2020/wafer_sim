@@ -77,7 +77,7 @@ def draw_pipeline(trace_list,path,title,name='pipeline.png'):
     ax.set_ylim(0, num+1)
     ax.set_yticks([num-i for i in range(num)])
     ax.set_xlim(0, width_scale)
-    ax.set_aspect(20)
+    #ax.set_aspect(20)
     plt.xlabel("Time")
     plt.ylabel("Stage")
     plt.savefig(path+name)
