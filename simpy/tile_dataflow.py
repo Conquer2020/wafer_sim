@@ -150,7 +150,7 @@ class Tile():# for compute process
         acc_op_wsg_size=0
         acc_op_intra_act_size=0
         #acc_op_output_act_size=0 #mulc(op_list[-1].i_shape) no store
-        #print(len(op_list))
+        print(len(op_list))
         dataflow0=dataflow.WS
         sram1=store_strategy.cache
         recomputes2=recompute_strategy.none
@@ -238,6 +238,7 @@ class Tile():# for compute process
         self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_weight_update_process(self.env,map_ana,device,op_list,wd1)
+        print(map_ana)
         return  map_ana
     
     def analysis_forward_process(self,env,map_ana:list,device:List[int],op_list:List[OpNode],wd1:wd):
@@ -861,25 +862,24 @@ class Tile():# for compute process
             self.update_event.append(analysis_template_event(update_param))
 
     def execute_forward_process(self):
+        #print("execute_forward_process start @ {:.3f} ms".format(self.env.now))
         for events in self.forward_event:
             execute_event=[self.env.process(event) for event in events]
-            yield simpy.AnyOf(self.env,execute_event)
+            yield simpy.AllOf(self.env,execute_event)
+        #print("execute_forward_process end @ {:.3f} ms".format(self.env.now))
     def execute_backward_process(self):
-        yield self.env.timeout(10)
-        '''
         for index,_ in enumerate(self.dloss_event):
             if self.recompute_event[index]!=None:
                 execute_event=[self.env.process(event) for event in self.recompute_event[index]]
-                yield simpy.AnyOf(self.env,execute_event)
+                yield simpy.AllOf(self.env,execute_event)
             execute_event=[self.env.process(event) for event in self.dloss_event[index]]
-            yield simpy.AnyOf(self.env,execute_event)
+            yield simpy.AllOf(self.env,execute_event)
             execute_event=[self.env.process(event) for event in self.dW_event[index]]
-            yield simpy.AnyOf(self.env,execute_event)
-       ''' 
+            yield simpy.AllOf(self.env,execute_event)
     def execute_update_process(self):
         for events in self.update_event:
             execute_event=[self.env.process(event) for event in events]
-            yield simpy.AnyOf(self.env,execute_event)
+            yield simpy.AllOf(self.env,execute_event)
 
     
 

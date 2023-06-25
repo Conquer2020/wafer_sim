@@ -49,7 +49,7 @@ class Stage():
                 t_last=env.now
                 #print('time:{},start forward'.format(round(env.now, 2)))
                 #TODO 修改为数据流执行
-                yield env.timeout(20)
+                #yield env.timeout(20)
                 yield env.process(self.tile.execute_forward_process())
                 self.trace.append((t_last,env.now,0))
             if self.next_core_id!=None and self.next_core_id!=[]:
@@ -151,7 +151,6 @@ class Stages():
         for i in range(self.pipe_times):
             self.env.process(self.pipeline_execute_forward_process())
             self.env.process(self.pipeline_execute_backward_process())
-            #self.env.timeout(1e-11)
     def simpy_run(self,until=2000):
         print('----------simpy_run----------')
         sim_start_t=time.time()
