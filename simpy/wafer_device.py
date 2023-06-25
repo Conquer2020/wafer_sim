@@ -329,8 +329,6 @@ class Wafer_Device():
         yield self.env.timeout(5)
     def STAGE_PASS_process(self,comm_size:Union[int,Packet],group_a:List[int],group_b:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语
-        yield self.env.timeout(5)
-        '''
         if type(comm_size) is Packet:
             comm_size=comm_size.size
         distance=[]
@@ -355,8 +353,7 @@ class Wafer_Device():
             #if DEBUG_MODE:
             #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             break
-            
-        '''
+
 
 if __name__ == '__main__':
     Debug=True

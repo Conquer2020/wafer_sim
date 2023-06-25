@@ -144,7 +144,6 @@ class Tile():# for compute process
                         pass
                     else:
                         pass
-
     def mapping_analysis(self,stage_info,device:List[int],op_list:List[OpNode],wd1:wd):
         #init 
         #device_gp=device
@@ -866,10 +865,8 @@ class Tile():# for compute process
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AnyOf(self.env,execute_event)
     def execute_backward_process(self):
-        #yield self.env.timeout(10)
-        print(self.recompute_event)
-        print(self.dloss_event)
-        print(self.dW_event)
+        yield self.env.timeout(10)
+        '''
         for index,_ in enumerate(self.dloss_event):
             if self.recompute_event[index]!=None:
                 execute_event=[self.env.process(event) for event in self.recompute_event[index]]
@@ -878,7 +875,7 @@ class Tile():# for compute process
             yield simpy.AnyOf(self.env,execute_event)
             execute_event=[self.env.process(event) for event in self.dW_event[index]]
             yield simpy.AnyOf(self.env,execute_event)
-        
+       ''' 
     def execute_update_process(self):
         for events in self.update_event:
             execute_event=[self.env.process(event) for event in events]
