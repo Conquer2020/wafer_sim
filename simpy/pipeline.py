@@ -169,12 +169,14 @@ class Stages():
         title=str(self.pipe_type)
         for stage in self.stages:
             all_trace.append(stage.trace)
+        pipe_endtime=all_trace[0][-1][1]
+        endtime_days=pipe_endtime/1000/60/60/24
+        endtime_secs=pipe_endtime/1000
         with open(path+name_log, 'w') as f:
             f.write(str(all_trace))
         if draw_pipe:
-            draw_pipeline(all_trace,path=path,title=title,name=name_png)
-        pipe_endtime=all_trace[0][-1][1]
-        print('{} ML training pipeline endtime {:.3f} days[{:.3f}s]'.format(title,pipe_endtime/1000/60/60/24,pipe_endtime/1000))
+            draw_pipeline(all_trace,path=path,title=title,endtime=endtime_days,name=name_png)
+        print('{} ML training pipeline endtime {:.1f} days[{:.1f}s]'.format(title,endtime_days,endtime_secs))
         return pipe_endtime
 
 

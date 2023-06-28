@@ -43,7 +43,7 @@ def str2strlist(string):
             str_str=str_.split('\'')
             ls.append(str_str[1])
     return ls
-def draw_pipeline(trace_list,path,title,name='pipeline.png'):
+def draw_pipeline(trace_list,path,title,endtime,name='pipeline.png'):
     #print(trace_list)
     #[[(s,e),(s,e),(s,e)],[],[]], []=stages,s=micro_start_time,e=micro_end_time
     fig = plt.figure()
@@ -73,7 +73,7 @@ def draw_pipeline(trace_list,path,title,name='pipeline.png'):
             ax.add_patch(rect)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    plt.title('{} stages ML {} pipeline'.format(num,title))
+    plt.title('{} stages ML {} pipeline [{:.1f} days]'.format(num,title,endtime))
     ax.set_ylim(0, num+1)
     ax.set_yticks([num-i for i in range(num)])
     ax.set_xlim(0, width_scale)
