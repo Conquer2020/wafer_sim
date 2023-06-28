@@ -25,7 +25,7 @@ if __name__ == '__main__':
     #3.mapping by hand
     #TODO mapping with graph arch info
     STG_NUM=16
-    DATA_PARALLELISM=4
+    DATA_PARALLELISM=2
     tiles=[]
     for i in range(STG_NUM):  
         tiles.append(tiles_id[i::STG_NUM])

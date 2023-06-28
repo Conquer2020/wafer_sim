@@ -241,7 +241,7 @@ class Tile():# for compute process
                 edgedram4=store_strategy.ACT_weight
 
         self.map_ana=[dataflow0,sram1,recomputes2,tiledram3,edgedram4]
-        print(self.map_ana)
+        #print(self.map_ana)
         '''
         self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)
