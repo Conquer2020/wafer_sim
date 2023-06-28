@@ -161,16 +161,20 @@ class Stages():
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
     def pipeline_status(self,path='./pic/',draw_pipe=True):
+        tm=time.strftime('_%m_%d_%H_%M_%S',time.localtime())
+        name='pipeline'+str(tm)
+        name_png=name+'.png'
+        name_log=name+'.log'
         all_trace=[]
-        name=str(self.pipe_type)
+        title=str(self.pipe_type)
         for stage in self.stages:
             all_trace.append(stage.trace)
-        with open(path+'trace.log', 'w') as f:
+        with open(path+name_log, 'w') as f:
             f.write(str(all_trace))
         if draw_pipe:
-            draw_pipeline(all_trace,path=path,title=name)
+            draw_pipeline(all_trace,path=path,title=title,name=name_png)
         pipe_endtime=all_trace[0][-1][1]
-        print('{} ML training pipeline endtime {:.3f} days[{:.3f}s]'.format(name,pipe_endtime/1000/60/60/24,pipe_endtime/1000))
+        print('{} ML training pipeline endtime {:.3f} days[{:.3f}s]'.format(title,pipe_endtime/1000/60/60/24,pipe_endtime/1000))
         return pipe_endtime
 
 

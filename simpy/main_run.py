@@ -14,7 +14,7 @@ if __name__ == '__main__':
     #2.define hardware
     #defualt:tile=Tile(with_dram=True)
     #256x16 tile
-    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[4,4],tile_intra_shape=[4,4])
+    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[8,4],tile_intra_shape=[4,4])
     tiles_id=wd.device_list() 
 
     #read ml compute graph from json file or define ml compute graph by yourself
