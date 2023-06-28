@@ -14,7 +14,7 @@ if __name__ == '__main__':
     #2.define hardware
     #defualt:tile=Tile(with_dram=True)
     #256x16 tile
-    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[64,4],tile_intra_shape=[4,4])
+    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[16,4],tile_intra_shape=[4,4])
     tiles_id=wd.device_list() 
 
     #read ml compute graph from json file or define ml compute graph by yourself
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     #3.mapping by hand
     #TODO mapping with graph arch info
     STG_NUM=16
-    DATA_PARALLELISM=16
+    DATA_PARALLELISM=4
     tiles=[]
     for i in range(STG_NUM):  
         tiles.append(tiles_id[i::STG_NUM])
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     if ops!=[]:
         ops_per_stg[-1].append(op)
     #write graph with device to file
-    #CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
+    CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
 
     #4.pipeline define and set
     stgs=[]

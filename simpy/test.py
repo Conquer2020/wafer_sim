@@ -1,17 +1,12 @@
 
 
 import simpy
-import matplotlib.pyplot as plt
-from enum import Enum
-from typing import List
-from queue import Queue
-from operator import mul
-from functools import reduce
+import copy
 def my_process(env,time=5):
-    print("my_process start @ {:.3f} ms".format(env.now))
+    print("my_process start @ {0:.3f} ms".format(env.now))
     yield env.timeout(time)
     yield env.timeout(20)
-    print("my_process end @ {:.3f} ms".format(env.now))
+    print("my_process end   @ {0:.3f} ms".format(env.now))
 
 def gen_event(env):
     events=[]
@@ -21,11 +16,12 @@ def gen_event(env):
     events.append(event)
     return events
 def execute(env,events): 
-    execute_event=[env.process(event) for event in events]
-    print("execute start @ {:.3f} ms".format(env.now))
-    yield simpy.AnyOf(env,execute_event)
-    yield env.timeout(5)
-    print("execute end @ {:.3f} ms".format(env.now))
+    for et in events:
+        execute_event=[env.process(event) for event in et ]
+        print("execute start @ {:.3f} ms".format(env.now))
+        yield simpy.AllOf(env,execute_event)
+        #yield env.timeout(5)
+        print("execute end @ {:.3f} ms".format(env.now))
 
 def test_1(env,events):
     for event in events:
@@ -34,6 +30,9 @@ def test(env):
     return env.process(my_process(env))
 if __name__ == '__main__':
     env=simpy.Environment()
-    event=gen_event(env)
-    #env.process(execute(env,event))
-    env.run(until=200)
+    events=[gen_event(env),gen_event(env)]
+    #events1=[gen_event(env),gen_event(env)]
+    events1=copy.deepcopy(events)
+    env.process(execute(env,events))
+    env.process(execute(env,events1))
+    env.run(until=300)

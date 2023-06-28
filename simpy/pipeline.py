@@ -50,7 +50,9 @@ class Stage():
                 #print('time:{},start forward'.format(round(env.now, 2)))
                 #TODO 修改为数据流执行
                 #yield env.timeout(20)
+                #print('time:{},start forward'.format(round(env.now, 2)))
                 yield env.process(self.tile.execute_forward_process())
+                #print('time:{},end forward'.format(round(env.now, 2)))
                 self.trace.append((t_last,env.now,0))
             if self.next_core_id!=None and self.next_core_id!=[]:
                 task_info=self.__class__.__stage_id
@@ -107,7 +109,7 @@ class Stages():
                 self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
             else:
                 raise NotImplementedError
-            self.stages[i].map_ana=self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)
+            self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)
     def pipeline_execute_forward_process(self):
         def pro():
             stage_len=len(self.stages)

@@ -194,51 +194,55 @@ class Wafer_Device():
     def noc_process(self,comm_size_MB,src_id,des_id,task_id=1,DEBUG_MODE=False):
         assert(src_id!=des_id)
         ListID=self.link_gen(src_id,des_id,DEBUG_MODE)
-        if DEBUG_MODE:
-            print('Link_id_List:{}'.format(ListID))
+        #if DEBUG_MODE:
+        #    print('Link_id_List:{}'.format(ListID))
         while(True):
-            if DEBUG_MODE:
-                print("task {} start noc @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("task {} start noc @ {:.3f} ms".format(task_id,self.env.now))
             for i in ListID:
                 #print(i)
                 with self.link_resource[i].request() as req: 
                     yield req
                     if self.is_inter_link(i):
-                        if DEBUG_MODE:
-                            print('task {} cross the inter noc, link_id={}'.format(task_id,i))
+                        #if DEBUG_MODE:
+                        #    print('task {} cross the inter noc, link_id={}'.format(task_id,i))
                         yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_inter_noc_bw_GB)
                     else:
                         yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_intra_noc_bw_GB)
-            if DEBUG_MODE:
-                print("task {} end noc @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("task {} end noc @ {:.3f} ms".format(task_id,self.env.now))
             break
     def edge_dram_write_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
-        #TODO 此处访存id存在错误 @fangjh21.20230602
-        x0=self.tile_intra_shape[0]
+        #TODO 
         x1=self.tile_inter_shape[0]
-        #y0=self.tile_intra_shape[1]
-        #y1=self.tile_inter_shape[1]
-        row_line=int(src_id /(x0*x1))+1
-        des_id=row_line*x0*x1-1 if row_line*x0*x1-1-src_id<x0*x1/2 else (row_line-1)*x0*x1
+        y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
+        row_line=int(src_id /y)+1
+        des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
         while(True):
-            if DEBUG_MODE:
-                print("task {} start dram wrtie  @ {:.3f} ms".format(task_id,self.envenv.now))
+            #if DEBUG_MODE:
+            #    print("task {} start dram wrtie  @ {:.3f} ms".format(task_id,self.envenv.now))
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,src_id,des_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))
-            dram_index=int(des_id/ (x1*x0))if des_id %( x1*x0) ==0 else int(des_id/ (x1*x0))+x1*x0
+            dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
             yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
-            if DEBUG_MODE:
-                print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
+            #if DEBUG_MODE:
+            #    print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
     def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
-        x0=self.tile_intra_shape[0]
+        #x0=self.tile_intra_shape[0]
+        #x1=self.tile_inter_shape[0]
+        #y0=self.tile_intra_shape[1]
+        #y1=self.tile_inter_shape[1]
         x1=self.tile_inter_shape[0]
-        row_line=int(src_id /(x0*x1))+1
-        des_id=row_line*x0*x1-1 if row_line*x0*x1-1-src_id<x0*x1/2 else (row_line-1)*x0*x1
+        y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
+        row_line=int(src_id /y)+1
+        des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
         while(True):
             #if DEBUG_MODE:
             #    print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
-            dram_index=int(des_id/(x1*x0)) if des_id % (x1*x0) ==0 else int(des_id/ x1*x0)+x1*x0
+            dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
+            #print(dram_index)
+            #print(len(self.edge_dram_resource))
             yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=False))
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,des_id,src_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))
