@@ -116,7 +116,7 @@ class Stages():
             for i in range(stage_len):
                 yield self.env.process(self.stages[i].stage_forward_process(self.f_q[i],self.f_q[i+1],self.env,self.noc))
                 #print('stage {} @ {:.3f} ms'.format(i,self.env.now))
-            print('finish forward @ {:.3f} ms'.format(self.env.now))
+            #print('finish forward @ {:.3f} ms'.format(self.env.now))
         yield self.env.process(pro())
         
     def pipeline_execute_backward_process(self): 
@@ -125,7 +125,7 @@ class Stages():
             for i in range(stage_len-1,-1,-1):
                 yield self.env.process(self.stages[i].stage_backward_process(self.b_q[i],self.b_q[i+1],self.env,self.noc))
             #TODO bug  
-            print('finish backward @ {:.3f} ms'.format(self.env.now))
+            #print('finish backward @ {:.3f} ms'.format(self.env.now))
         with self.f_q[len(self.stages)].get() as get:
             a=yield get
             yield self.b_q[len(self.stages)].put(a)
@@ -160,7 +160,7 @@ class Stages():
         self.env.run(until=until)
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
-    def pipe_status(self,path,draw_pipe=True):
+    def pipeline_status(self,path='./pic/',draw_pipe=True):
         all_trace=[]
         name=str(self.pipe_type)
         for stage in self.stages:
@@ -170,7 +170,7 @@ class Stages():
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=name)
         pipe_endtime=all_trace[0][-1][1]
-        print('{} ml training pipeline endtime {:.3f} days[{:.3f}s]'.format(name,pipe_endtime/1000/60/60/24,pipe_endtime/1000))
+        print('{} ML training pipeline endtime {:.3f} days[{:.3f}s]'.format(name,pipe_endtime/1000/60/60/24,pipe_endtime/1000))
         return pipe_endtime
 
 

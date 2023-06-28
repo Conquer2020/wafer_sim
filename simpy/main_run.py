@@ -14,7 +14,7 @@ if __name__ == '__main__':
     #2.define hardware
     #defualt:tile=Tile(with_dram=True)
     #256x16 tile
-    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[16,4],tile_intra_shape=[4,4])
+    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[4,4],tile_intra_shape=[4,4])
     tiles_id=wd.device_list() 
 
     #read ml compute graph from json file or define ml compute graph by yourself
@@ -44,7 +44,6 @@ if __name__ == '__main__':
         op=gp.op_dict[op_name]
         op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
         ops.append(op)
-        #print(op.fd_macs_m)
         if i % nums_per_stg==nums_per_stg-1:
             j+=1
             ops_per_stg.append(ops)
@@ -52,7 +51,7 @@ if __name__ == '__main__':
     if ops!=[]:
         ops_per_stg[-1].append(op)
     #write graph with device to file
-    CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
+    #CompGraph.gwrite(gp,path='mljson',name='gpt_dp_test.json')
 
     #4.pipeline define and set
     stgs=[]
@@ -60,10 +59,7 @@ if __name__ == '__main__':
         last_core_id=[] if i==0 else tiles[i-1]
         cur_core_id=tiles[i]
         next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
-        #print(len(ops_per_stg[i]))
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
-
-    #print(len(stgs))
     #micro_batch=batch_size//STG_NUM
     micro_batch=batch_size//3
     stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=micro_batch,stages=stgs,noc=wd)
@@ -71,12 +67,11 @@ if __name__ == '__main__':
 
     #5.simpy run  
     one_weeks_ms=24*60*60*7*1000
-    #print(one_weeks_ms)
     scale_sim_time=one_weeks_ms*1000000
     stages.simpy_run(until=scale_sim_time)
 
     #6. log and info output
-    stages.pipe_status(path='./pic/')
+    stages.pipeline_status()
     #for index,dram_res in enumerate(wd.edge_dram_resource):
     #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
 

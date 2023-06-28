@@ -149,8 +149,8 @@ class Wafer_Device():
                     list.append(src_id)
         else:
             pass
-        if DEBUG_MODE:
-            print('Router_List:{}'.format(list))
+        #if DEBUG_MODE:
+        #    print('Router_List:{}'.format(list))
         return list
     def link_gen(self,src_id,des_id,DEBUG_MODE=False):
         x0=self.tile_intra_shape[0]
