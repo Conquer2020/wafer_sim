@@ -104,9 +104,9 @@ class Stages():
             if self.pipe_type==pipe_strategy.GPipe:
                 self.stages[i].stage_info=[self.pipe_type,self.mini_batch,self.micro_batch]
             elif self.pipe_type==pipe_strategy.Megatron1F1B:
-                self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
+                self.stages[i].stage_info=[self.pipe_type,i,stages_len]
             elif self.pipe_type==pipe_strategy.Cerebras:
-                self.stages[i].stage_info=[self.pipe_type,i+1,stages_len]
+                self.stages[i].stage_info=[self.pipe_type,i,stages_len]
             else:
                 raise NotImplementedError
             self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)

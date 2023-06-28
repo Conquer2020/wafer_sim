@@ -1,12 +1,9 @@
 import math
 import simpy
-from  util import BaseEnum as Enum
-from typing import List,Optional,Union
+import numpy as np
+from typing import List,Union
 from util import *
 from wafer_device import Wafer_Device as wd
-
-
-import numpy as np
 from ML import *
 from comp_graph import CompGraph,OpNode
 from op_pd import CommOp
@@ -15,7 +12,7 @@ class Tile():# for compute process
     def __init__(self,env,tile_name='tx8',
                  sram_capacity_MB=3,macs=4000,freq_GHz=1,\
                  with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
-                    opt=OPTIMIZER,ZeRO=ZeRO_strategy.ZeRO_2) -> None:
+                    opt=OPTIMIZER.ADAM,ZeRO=ZeRO_strategy.ZeRO_2) -> None:
         #info
         self.tile_name=tile_name
 
@@ -158,11 +155,10 @@ class Tile():# for compute process
         self.device_id=device
         self.op_list=op_list
         self.noc=wd1
-
         acc_op_wsg_size=0
         acc_op_intra_act_size=0
         #acc_op_output_act_size=0 #mulc(op_list[-1].i_shape) no store
-        print(len(op_list))
+
         dataflow0=dataflow.WS
         sram1=store_strategy.cache
         recomputes2=recompute_strategy.none
@@ -172,7 +168,6 @@ class Tile():# for compute process
         [pipe_strategy,info1,info2]=stage_info
         input_act_size_m=mulc(op_list[0].i_shape)/1000/1000
         #ouput_act_size=mulc(op_list[-1].o_shape)
-
         #dram/sram allocation for each op with parallism  and recompute strategy
         # @fangjh21.20230602
         for op in op_list:
@@ -180,7 +175,7 @@ class Tile():# for compute process
             temp=np.array(op.w_s_g_size_m)*np.array(self.wsg_store_bytes)
             acc_op_wsg_size+=mulc(temp.tolist())+0 #TODO 计算所需冗余空间
             acc_op_intra_act_size+=op.intra_act_size_m*self.act_bytes
-            
+            #print('1',acc_op_intra_act_size)
         act_times_coe=0
         if pipe_strategy==pipe_strategy.GPipe:
             act_times_coe=info1
@@ -194,7 +189,6 @@ class Tile():# for compute process
             raise NotImplementedError
         mem_occupy_by_wsg=acc_op_wsg_size
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
-
         sram_size=self.sram_capacity_m #MB
         tile_dram_size=self.tile_dram_capacity_m*1000 #MB 
 
@@ -247,12 +241,12 @@ class Tile():# for compute process
                 edgedram4=store_strategy.ACT_weight
 
         self.map_ana=[dataflow0,sram1,recomputes2,tiledram3,edgedram4]
+        print(self.map_ana)
         '''
         self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_weight_update_process(self.env,map_ana,device,op_list,wd1)
         '''
-        #print(map_ana)
         return  self.map_ana
     
     def execute_forward_process(self):
@@ -260,7 +254,6 @@ class Tile():# for compute process
             assert(len(param)==11)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
-            #index_of_nooverlap_comm=-1
             if(param[0]!=None):
                 event_list.append(self.noc.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_load,multicast=False))
             if(param[1]!=None):
