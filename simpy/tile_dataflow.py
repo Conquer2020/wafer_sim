@@ -172,6 +172,7 @@ class Tile():# for compute process
         # @fangjh21.20230602
         for op in op_list:
             op.set_ZeRO(ZeRO)
+            #print(op)
             temp=np.array(op.w_s_g_size_m)*np.array(self.wsg_store_bytes)
             acc_op_wsg_size+=mulc(temp.tolist())+0 #TODO 计算所需冗余空间
             acc_op_intra_act_size+=op.intra_act_size_m*self.act_bytes

@@ -139,26 +139,10 @@ class Oppd(CompOp):
         self.f_b_u_comm_d=[]
         self.ZeRO_comm_d=[] #forward all-gather,backward all-gather
         self.dpmap_flag=False
-
-    def dpmap(self,device_id:List[int],p_sgy:Optional[List[int]]=None):
-        assert p_sgy==None or len(p_sgy)<=4,'The number of parallel dimensions exceeds the op dim space!'
-        if (p_sgy==None or p_sgy==[]):
-            #print('Warning:parallel dimension not specified as the number of device  more than one!')
-            self.p_sgy=[1,len(device_id)]
-            self.device=device_id
-        else:
-            assert(mulc(p_sgy)==len(device_id))
-            self.p_sgy=p_sgy
-            self.device=device_id
-        # TODO 完成并行通信算子的生成
-        self.update()
-        self.dpmap_flag=True
-        return True
-    def comm_insert(self):
+    def _comm_set(self):
         #pass
         self.f_b_u_comm_d=[]
         self.ZeRO_comm_d=[]
-        
         if self.type==OP.Transformer:
             [Nd,Nm]=self.p_sgy
             #Nd*Nm=device_num
@@ -175,10 +159,26 @@ class Oppd(CompOp):
             self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[1]))
     def update(self):
         self._analysis()
-        self.comm_insert()
+        self._comm_set()
     def set_ZeRO(self,ZeRO):
         super().set_ZeRO(ZeRO)
+        self._comm_set()
+
+    def dpmap(self,device_id:List[int],p_sgy:Optional[List[int]]=None):
+        assert p_sgy==None or len(p_sgy)<=4,'The number of parallel dimensions exceeds the op dim space!'
+        if (p_sgy==None or p_sgy==[]):
+            #print('Warning:parallel dimension not specified as the number of device  more than one!')
+            self.p_sgy=[1,len(device_id)]
+            self.device=device_id
+        else:
+            assert(mulc(p_sgy)==len(device_id))
+            self.p_sgy=p_sgy
+            self.device=device_id
+        # TODO 完成并行通信算子的生成
         self.update()
+        self.dpmap_flag=True
+        #self.update()
+        return True
     def __str__(self):
         if self.dpmap_flag:
             return '{}:(({},{}),p_sgy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.p_sgy,self.device)

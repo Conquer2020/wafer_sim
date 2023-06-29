@@ -336,11 +336,12 @@ class Wafer_Device():
             #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             for i in group_a:
                 if i!=src:
-                    yield self.env.process(self.noc_process(comm_size/len(group_a),i,src,task_id,DEBUG_MODE))
-            yield self.env.process(self.noc_process(comm_size,src,des,task_id,DEBUG_MODE))
+                    yield self.env.process(self.noc_process(comm_size,i,src,task_id,DEBUG_MODE))
+            all_comm_size=comm_size*len(group_a)
+            yield self.env.process(self.noc_process(all_comm_size,src,des,task_id,DEBUG_MODE))
             for j in group_b:
                 if j!=des:
-                    yield self.env.process(self.noc_process(comm_size/len(group_b),des,j,task_id,DEBUG_MODE))
+                    yield self.env.process(self.noc_process(all_comm_size/len(group_b),des,j,task_id,DEBUG_MODE))
             #if DEBUG_MODE:
             #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             break

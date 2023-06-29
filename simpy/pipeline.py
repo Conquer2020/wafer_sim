@@ -13,10 +13,20 @@ from ML import *
 # @fangjh21.20230602
 class Stage():
     __stage_id=0
-    def __init__(self,env,op_list,last_core_id:Optional[List[int]],\
+    def __init__(self,env,tile_config:dict,op_list,last_core_id:Optional[List[int]],\
                  cur_core_id:Optional[List[int]],next_core_id:Optional[List[int]],noc:wd)-> None:
-        self.tile=Tile(env,with_dram=noc.with_3ddram_per_tile,\
-                       dram_bw_GB=noc.tile_dram_bw_GB,dram_capacity_GB=noc.tile_dram_capacity_GB)
+        self.tile=Tile(
+                env=env,
+                tile_name=tile_config['tile_name'],       
+                sram_capacity_MB=tile_config['sram_capacity_MB'],
+                macs=tile_config['macs'],
+                freq_GHz=tile_config['freq_GHz'],
+                with_dram=tile_config['with_dram'],
+                dram_bw_GB=noc.tile_dram_bw_GB,
+                dram_capacity_GB=noc.tile_dram_capacity_GB,
+                opt=tile_config['opt'],
+                ZeRO=tile_config['ZeRO']
+                )
         self.op_list=op_list
         self.i_shape=[]
         self.o_shape=[]
@@ -87,7 +97,8 @@ class Stage():
                 yield last_q.put(Packet('',self.i_shape))
                 break
 class Stages():
-    def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],noc:wd,pipe_type=pipe_strategy.Megatron1F1B) -> None:
+    def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],\
+                 noc:wd,pipe_type:pipe_strategy=pipe_strategy.Megatron1F1B) -> None:
         #simpy env 
         self.env=env
         self.loss_q=simpy.Store(env=self.env,capacity=1) 
@@ -150,24 +161,37 @@ class Stages():
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
-                yield put
                 #yield self.env.timeout(0)
+                yield put
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
+                
     def pipeline_set(self,boost_mode=True): 
-        self.boost_mode=boost_mode
-        self.boost_times=4
+        def Megatron1F1B():
+            for _ in range(len(self.stages)+1):
+                self.f_q.append(simpy.Store(self.env,capacity=1))
+                self.b_q.append(simpy.Store(self.env,capacity=1))
+            self.env.process(self.start())
+            times=self.boost_times if self.boost_mode else self.pipe_times
+            for i in range(times):
+                self.env.process(self.pipeline_execute_forward_process())
+                self.env.process(self.pipeline_execute_backward_process())
+        def Gpipe():
+            pass
+        def Cerebras():
+            pass
         print('----------pipe_info----------')
         print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
         print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
-        for _ in range(len(self.stages)+1):
-            self.f_q.append(simpy.Store(self.env,capacity=1))
-            self.b_q.append(simpy.Store(self.env,capacity=1))
-        self.env.process(self.start())
-        #TODO 
-        times=self.boost_times if self.boost_mode else self.pipe_times
-        for i in range(times):
-            self.env.process(self.pipeline_execute_forward_process())
-            self.env.process(self.pipeline_execute_backward_process())
+        self.boost_mode=boost_mode
+        self.boost_times=4
+        if self.pipe_type==pipe_strategy.Megatron1F1B:
+            Megatron1F1B()
+        elif self.pipe_type==pipe_strategy.GPipe:
+            Gpipe()
+        elif self.pipe_type==pipe_strategy.GPipe:
+            Cerebras()
+
+
     def simpy_run(self,until=2000):
         print('----------simpy_run----------')
         sim_start_t=time.time()
@@ -175,7 +199,7 @@ class Stages():
         self.env.run(until=until)
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
-    def pipeline_status(self,path='./status/pipeline/',draw_pipe=True):
+    def pipeline_status(self,path='./status/pipeline/',draw_pipe=True,write_log=False,clear=True):
         tm=time.strftime('_%m_%d_%H_%M_%S',time.localtime())
         name='pipeline'+str(tm)
         name_log=name+'.log'
@@ -194,8 +218,15 @@ class Stages():
         endtime_secs=pipe_endtime/1000
         if not os.path.exists(path):
             os.makedirs(path)
-        with open(path+name_log, 'w') as f:
-            f.write(str(all_trace))
+        elif clear:
+            ls = os.listdir(path)
+            for i in ls:
+                f_path = os.path.join(path, i)
+                #print(f_path)
+                os.remove(f_path)
+        if write_log:
+            with open(path+name_log, 'w') as f:
+                f.write(str(all_trace))
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=title,endtime=endtime_days,name=name)
         print('{} ML training pipeline endtime {:.1f} days [{:.1f}s]'.format(title,endtime_days,endtime_secs))
