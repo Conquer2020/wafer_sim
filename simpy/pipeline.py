@@ -184,7 +184,7 @@ class Stages():
         for stage in self.stages:
             all_trace.append(stage.trace)
 
-        #add time
+        #add boosted time
         pipe_endtime=all_trace[0][-1][1]
         unit_time_1F1B=all_trace[-1][1][1]-all_trace[-1][0][0]
         #print(unit_time_1F1B)
@@ -198,7 +198,7 @@ class Stages():
             f.write(str(all_trace))
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=title,endtime=endtime_days,name=name)
-        print('{} ML training pipeline endtime {:.1f} days[{:.1f}s]'.format(title,endtime_days,endtime_secs))
+        print('{} ML training pipeline endtime {:.1f} days [{:.1f}s]'.format(title,endtime_days,endtime_secs))
         return endtime_days
 
 
