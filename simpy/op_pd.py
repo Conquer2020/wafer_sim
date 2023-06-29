@@ -151,8 +151,7 @@ class Oppd(CompOp):
             self.p_sgy=p_sgy
             self.device=device_id
         # TODO 完成并行通信算子的生成
-        self._analysis()
-        self.comm_insert()
+        self.update()
         self.dpmap_flag=True
         return True
     def comm_insert(self):
@@ -174,9 +173,12 @@ class Oppd(CompOp):
 
             self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[0]))
             self.ZeRO_comm_d.append(CommOp(Nd_Group,COMM.ALL_2_ALL,self.ZeRO_comm[1]))
+    def update(self):
+        self._analysis()
+        self.comm_insert()
     def set_ZeRO(self,ZeRO):
         super().set_ZeRO(ZeRO)
-        self.comm_insert()
+        self.update()
     def __str__(self):
         if self.dpmap_flag:
             return '{}:(({},{}),p_sgy={},device={})'.format(self.hint_name,self.type,self.param_dim,self.p_sgy,self.device)

@@ -20,7 +20,7 @@ class Stage():
         self.op_list=op_list
         self.i_shape=[]
         self.o_shape=[]
-        self.__init_info()
+        #self.init_info()
 
         self.last_core_id=last_core_id
         self.cur_core_id=cur_core_id
@@ -32,7 +32,11 @@ class Stage():
         self.trace=[]
         
         self.__class__.__stage_id+=1
-    def __init_info(self):
+        
+    def init_info(self,micro_batch):
+        for op in self.op_list:
+            op.param_dim[0]=micro_batch
+            op.update()
         self.i_shape=self.op_list[0].i_shape
         self.o_shape=self.op_list[-1].o_shape
         
@@ -100,12 +104,14 @@ class Stages():
         self.__set_stage()
 
         self.boost_mode=False
+        self.boost_times=4
 
 
     def __set_stage(self):
         #TODO 需要检查device 在stage段无重复，否则映射不符合流水规则
         stages_len=len(self.stages)
         for i in range(stages_len):
+            self.stages[i].init_info(self.micro_batch)
             if self.pipe_type==pipe_strategy.GPipe:
                 self.stages[i].stage_info=[self.pipe_type,self.mini_batch,self.micro_batch]
             elif self.pipe_type==pipe_strategy.Megatron1F1B:
@@ -136,10 +142,10 @@ class Stages():
             yield self.b_q[len(self.stages)].put(a)
             yield self.env.process(pro())
             
-    def start(self,boost_times):
+    def start(self):
         #TODO 修改 DP相关
         #TODO 
-        times=boost_times if self.boost_mode else self.pipe_times
+        times=self.boost_times if self.boost_mode else self.pipe_times
         for i in range(times):
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
@@ -149,16 +155,16 @@ class Stages():
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
     def pipeline_set(self,boost_mode=True): 
         self.boost_mode=boost_mode
-        boost_times=4
+        self.boost_times=4
         print('----------pipe_info----------')
         print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
         print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
         for _ in range(len(self.stages)+1):
             self.f_q.append(simpy.Store(self.env,capacity=1))
             self.b_q.append(simpy.Store(self.env,capacity=1))
-        self.env.process(self.start(boost_times))
+        self.env.process(self.start())
         #TODO 
-        times=boost_times if self.boost_mode else self.pipe_times
+        times=self.boost_times if self.boost_mode else self.pipe_times
         for i in range(times):
             self.env.process(self.pipeline_execute_forward_process())
             self.env.process(self.pipeline_execute_backward_process())
@@ -177,12 +183,13 @@ class Stages():
         title=str(self.pipe_type)
         for stage in self.stages:
             all_trace.append(stage.trace)
+
+        #add time
         pipe_endtime=all_trace[0][-1][1]
-
+        unit_time_1F1B=all_trace[-1][1][1]-all_trace[-1][0][0]
+        #print(unit_time_1F1B)
         if self.boost_mode:
-            pass
-
-
+            pipe_endtime=pipe_endtime+(self.pipe_times-self.boost_times)*unit_time_1F1B 
         endtime_days=pipe_endtime/1000/60/60/24
         endtime_secs=pipe_endtime/1000
         if not os.path.exists(path):

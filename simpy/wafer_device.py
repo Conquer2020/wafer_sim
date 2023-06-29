@@ -47,7 +47,7 @@ class dram_model():
             yield self.env.timeout(latency)
 
 class Wafer_Device():
-    def __init__(self,env,wafer_name='fangjh21.20230619',tile_intra_shape=[4,4],tile_inter_shape=[2,2],\
+    def __init__(self,env,wafer_name='test_wafer',tile_intra_shape=[4,4],tile_inter_shape=[2,2],\
                     tile_intra_noc_bw_GB=256,tile_inter_noc_bw_GB=256*0.6,\
                     tile_dram_bw_GB=12288/16/8,tile_dram_capacity_GB=6/16,
                         edge_die_dram_bw_GB=256,clk_freq_Ghz=1,with_3ddram_per_tile=True) -> None:
