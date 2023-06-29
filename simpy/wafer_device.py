@@ -289,19 +289,6 @@ class Wafer_Device():
                         self.noc_process(comm_size,group_id[i],group_id[0],task_id))
             yield self.env.process(self.edge_dram_write_process(access_size_MB,group_id[0],task_id))
             break
-    def visualize_resource(self,res_data:List,name,res_type='edge_dram',path='./pic/'):
-        max_resource=None
-        if res_type=='edge_dram':
-            max_resource=self.edge_die_dram_bw_GB
-        if res_type=='3dram':
-            max_resource=self.tile_dram_bw_GB
-        elif res_type=='inter_noc':
-            max_resource=self.tile_inter_noc_bw_GB
-        elif res_type=='intra_noc':
-            max_resource=self.tile_intra_noc_bw_GB
-        else :
-            return NotImplemented
-        visualize_resource(res_data.data,name=path+res_type+name,max_resource=max_resource)
 
     def ALL_REDUCE_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语及其优化
@@ -358,7 +345,25 @@ class Wafer_Device():
             #    print("STAGE_PASS task {} start @ {:.3f} ms".format(task_id,self.env.now))
             break
 
-
+    def resource_visualize(self,res_type:str='edge_dram',path='./status/'):
+        if res_type=='edge_dram':
+            path+=res_type
+            for index,res in enumerate(self.edge_dram_resource):
+                visualize_resource(res.access_resource.data,path,str(index),self.edge_die_dram_bw_GB)
+        elif res_type=='3dram':
+            path+=res_type
+            for index,res in enumerate(self.dram_per_tile_resource):
+                visualize_resource(res.access_resource.data,path,str(index),self.tile_dram_bw_GB)
+        elif res_type=='noc':
+            path1=path+'inter_'+res_type
+            path2=path+'intra_'+res_type
+            for index,res in enumerate(self.link_resource):
+                if self.is_inter_link(index):
+                    visualize_resource(res.data,path1,str(index),self.tile_inter_noc_bw_GB)
+                else:
+                    visualize_resource(res.data,path2,str(index),self.tile_intra_noc_bw_GB)
+        else :
+            raise NotImplementedError
 if __name__ == '__main__':
     Debug=True
     env = simpy.Environment()

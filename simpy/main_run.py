@@ -11,12 +11,19 @@ if __name__ == '__main__':
     #1.define simpy environment
     env=simpy.Environment()
 
-    #2.define hardware
-    #defualt:tile=Tile(with_dram=True)
-    #256x16 tile
-    wd=Wafer_Device(env,with_3ddram_per_tile=True,tile_inter_shape=[8,4],tile_intra_shape=[4,4])
-    tiles_id=wd.device_list() 
-
+    #2.set hardware parameters
+    wd=Wafer_Device(
+        env=env,
+        tile_inter_shape=[16,4],
+        tile_intra_shape=[4,4],
+        tile_intra_noc_bw_GB=1024,
+        tile_inter_noc_bw_GB=1024*0.6,
+        tile_dram_bw_GB=12288/16/8,
+        tile_dram_capacity_GB=6/16,
+        edge_die_dram_bw_GB=512,
+        clk_freq_Ghz=1,
+        with_3ddram_per_tile=True
+        )
     #read ml compute graph from json file or define ml compute graph by yourself
     gp=CompGraph.gread(path='mljson',name='gpt-3.json')
     batch_size=gp.root.param_dim[0]
@@ -24,6 +31,7 @@ if __name__ == '__main__':
 
     #3.mapping by hand
     #TODO mapping with graph arch info
+    tiles_id=wd.device_list() 
     STG_NUM=16
     DATA_PARALLELISM=2
     tiles=[]
@@ -59,11 +67,11 @@ if __name__ == '__main__':
         last_core_id=[] if i==0 else tiles[i-1]
         cur_core_id=tiles[i]
         next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
-        stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id))
+        stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id,noc=wd))
     #micro_batch=batch_size//STG_NUM
-    micro_batch=batch_size//3
+    micro_batch=batch_size//10
     stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=micro_batch,stages=stgs,noc=wd)
-    stages.pipeline_set()
+    stages.pipeline_set(boost_mode=True)
 
     #5.simpy run  
     one_weeks_ms=24*60*60*7*1000
@@ -72,8 +80,7 @@ if __name__ == '__main__':
 
     #6. log and info output
     stages.pipeline_status()
-    #for index,dram_res in enumerate(wd.edge_dram_resource):
-    #wd.visualize_resource(dram_res.access_resource,res_type='edge_dram',name=str(index))
+    wd.resource_visualize(res_type='edge_dram')
 
 
 

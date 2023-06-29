@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import os
 from enum import Enum
 from typing import List
 from queue import Queue
@@ -43,7 +44,7 @@ def str2strlist(string):
             str_str=str_.split('\'')
             ls.append(str_str[1])
     return ls
-def draw_pipeline(trace_list,path,title,endtime,name='pipeline.png'):
+def draw_pipeline(trace_list,path,title,endtime,name='pipeline'):
     #print(trace_list)
     #[[(s,e),(s,e),(s,e)],[],[]], []=stages,s=micro_start_time,e=micro_end_time
     fig = plt.figure()
@@ -80,10 +81,13 @@ def draw_pipeline(trace_list,path,title,endtime,name='pipeline.png'):
     #ax.set_aspect(20)
     plt.xlabel("Time")
     plt.ylabel("Stage")
-    plt.savefig(path+name)
+    plt.savefig(os.path.join(path,name+'.png'))
 
-def visualize_resource(data:List,name,clear_redundance=True,max_resource=256,ave_unit_ms=1):
+
+def visualize_resource(data:List,path,name,clear_redundance=True,max_resource=256,ave_unit_ms=1):
     #[(req_flag,req_time,len_q),(res_flag,res_time,len_q)]
+    if data==[]:
+        return None
     q_req=Queue()
     occupy_list=[]
     for item in data:
@@ -123,7 +127,7 @@ def visualize_resource(data:List,name,clear_redundance=True,max_resource=256,ave
                 occupy_time=data[1]-data[0]
     data_list=list_ave if ave_unit_ms!=1 else new_list
     #[(start_time,end_time,resource_occupy)]
-    print(data_list)  
+    #print(data_list)  
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -133,11 +137,13 @@ def visualize_resource(data:List,name,clear_redundance=True,max_resource=256,ave
         plt.scatter(data[0],data[2],color='r')
         plt.scatter(data[1],data[2],color='r')
         if data[0]>data0:
-            plt.plot([data0,data[0]],[0,0],color='black',linewidth=2)
+            plt.plot([data0,data[0]],[0,0],color='black',linewidth=1)
             data0=data[0]
     plt.xlabel("Time(ms)")
     plt.ylabel("Bandwidth(GB/s)")
-    #plt.show()
-    plt.savefig(name+'.png')     
+    if not os.path.exists(path):
+        os.makedirs(path)
+    plt.savefig(os.path.join(path,name+'.png'))
+    plt.close()
     return data_list
         

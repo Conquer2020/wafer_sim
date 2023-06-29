@@ -11,14 +11,12 @@ from ML import *
 #TODO 修改流水线调度策略
 # reference Megatron2.0 
 # @fangjh21.20230602
-
-
-
 class Stage():
     __stage_id=0
     def __init__(self,env,op_list,last_core_id:Optional[List[int]],\
-                 cur_core_id:Optional[List[int]],next_core_id:Optional[List[int]])-> None:
-        self.tile=Tile(env)
+                 cur_core_id:Optional[List[int]],next_core_id:Optional[List[int]],noc:wd)-> None:
+        self.tile=Tile(env,with_dram=noc.with_3ddram_per_tile,\
+                       dram_bw_GB=noc.tile_dram_bw_GB,dram_capacity_GB=noc.tile_dram_capacity_GB)
         self.op_list=op_list
         self.i_shape=[]
         self.o_shape=[]
@@ -86,17 +84,24 @@ class Stage():
                 break
 class Stages():
     def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],noc:wd,pipe_type=pipe_strategy.Megatron1F1B) -> None:
+        #simpy env 
         self.env=env
+        self.loss_q=simpy.Store(env=self.env,capacity=1) 
+        self.f_q=[]
+        self.b_q=[]
+
+        #pipeline info
         self.stages=stages
         self.pipe_type=pipe_type
         self.noc=noc
-        self.loss_q=simpy.Store(env=self.env,capacity=1) 
         self.mini_batch=mini_batch_size
         self.micro_batch=micro_batch_size
         self.pipe_times=math.ceil(self.mini_batch/self.micro_batch)
-        self.f_q=[]
-        self.b_q=[]
         self.__set_stage()
+
+        self.boost_mode=False
+
+
     def __set_stage(self):
         #TODO 需要检查device 在stage段无重复，否则映射不符合流水规则
         stages_len=len(self.stages)
@@ -131,26 +136,30 @@ class Stages():
             yield self.b_q[len(self.stages)].put(a)
             yield self.env.process(pro())
             
-    def start(self):
+    def start(self,boost_times):
         #TODO 修改 DP相关
-        for i in range(self.pipe_times):
+        #TODO 
+        times=boost_times if self.boost_mode else self.pipe_times
+        for i in range(times):
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
             with self.f_q[0].put(Packet(task_info,i_shape)) as put:
                 yield put
                 #yield self.env.timeout(0)
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
-                
-
-    def pipeline_set(self): 
+    def pipeline_set(self,boost_mode=True): 
+        self.boost_mode=boost_mode
+        boost_times=4
         print('----------pipe_info----------')
         print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
         print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
         for _ in range(len(self.stages)+1):
             self.f_q.append(simpy.Store(self.env,capacity=1))
             self.b_q.append(simpy.Store(self.env,capacity=1))
-        self.env.process(self.start())
-        for i in range(self.pipe_times):
+        self.env.process(self.start(boost_times))
+        #TODO 
+        times=boost_times if self.boost_mode else self.pipe_times
+        for i in range(times):
             self.env.process(self.pipeline_execute_forward_process())
             self.env.process(self.pipeline_execute_backward_process())
     def simpy_run(self,until=2000):
@@ -160,23 +169,29 @@ class Stages():
         self.env.run(until=until)
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
-    def pipeline_status(self,path='./pic/',draw_pipe=True):
+    def pipeline_status(self,path='./status/pipeline/',draw_pipe=True):
         tm=time.strftime('_%m_%d_%H_%M_%S',time.localtime())
         name='pipeline'+str(tm)
-        name_png=name+'.png'
         name_log=name+'.log'
         all_trace=[]
         title=str(self.pipe_type)
         for stage in self.stages:
             all_trace.append(stage.trace)
         pipe_endtime=all_trace[0][-1][1]
+
+        if self.boost_mode:
+            pass
+
+
         endtime_days=pipe_endtime/1000/60/60/24
         endtime_secs=pipe_endtime/1000
+        if not os.path.exists(path):
+            os.makedirs(path)
         with open(path+name_log, 'w') as f:
             f.write(str(all_trace))
         if draw_pipe:
-            draw_pipeline(all_trace,path=path,title=title,endtime=endtime_days,name=name_png)
+            draw_pipeline(all_trace,path=path,title=title,endtime=endtime_days,name=name)
         print('{} ML training pipeline endtime {:.1f} days[{:.1f}s]'.format(title,endtime_days,endtime_secs))
-        return pipe_endtime
+        return endtime_days
 
 
