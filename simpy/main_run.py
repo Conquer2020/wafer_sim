@@ -24,6 +24,7 @@ if __name__ == '__main__':
         clk_freq_Ghz=1,
         with_3ddram_per_tile=True
         )
+    
     #read ml compute graph from json file or define ml compute graph by yourself
     gp=CompGraph.gread(path='mljson',name='gpt-3.json')
     batch_size=gp.root.param_dim[0]
@@ -64,22 +65,32 @@ if __name__ == '__main__':
     #4.pipeline define and set
     stgs=[]
     for i in range(STG_NUM):
-        last_core_id=[] if i==0 else tiles[i-1]
+        last_core_id=None if i==0 else tiles[i-1]
         cur_core_id=tiles[i]
-        next_core_id=[] if i==STG_NUM-1 else tiles[i+1]
+        next_core_id=None if i==STG_NUM-1 else tiles[i+1]
         stgs.append(pipe.Stage(env,ops_per_stg[i],last_core_id,cur_core_id,next_core_id,noc=wd))
     #micro_batch=batch_size//STG_NUM
     micro_batch=batch_size//10
-    stages=pipe.Stages(env=env,mini_batch_size=batch_size,micro_batch_size=micro_batch,stages=stgs,noc=wd)
+
+    stages=pipe.Stages(
+        env=env,
+        mini_batch_size=batch_size,
+        micro_batch_size=micro_batch,#TODO
+        stages=stgs,
+        noc=wd
+        )
     stages.pipeline_set(boost_mode=True)
+
+
 
     #5.simpy run  
     one_weeks_ms=24*60*60*7*1000
-    scale_sim_time=one_weeks_ms*1000000
+    scale_sim_time=one_weeks_ms*1000
     stages.simpy_run(until=scale_sim_time)
 
     #6. log and info output
     stages.pipeline_status()
+    #res_type='edge_dram' or '3dram' or 'noc'
     wd.resource_visualize(res_type='edge_dram')
 
 
