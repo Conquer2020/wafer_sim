@@ -15,8 +15,8 @@ if __name__ == '__main__':
         'tile_intra_shape':[4,4],
         'tile_intra_noc_bw_GB':1024,
         'tile_inter_noc_bw_GB':1024*0.6,
-        'tile_dram_bw_GB':12288/16/8*10,
-        'tile_dram_capacity_GB':6/16*10,
+        'tile_dram_bw_GB':12288/16/8,
+        'tile_dram_capacity_GB':6/16,
         'edge_die_dram_bw_GB':512,
         'clk_freq_Ghz':1,
         'with_3ddram_per_tile':True
@@ -51,12 +51,12 @@ if __name__ == '__main__':
     gpt_gp=CompGraph.gread(path='mljson',name='gpt-3.json')
     batch_size=gpt_gp.root.param_dim[0]
     #print(batch_size)
-
+    #print(wd.tile_inter_noc_bw_GB)
     #3.mapping by hand
     #TODO mapping with graph arch info
     tiles_id=wd.device_list() 
     STG_NUM=16
-    DATA_PARALLELISM=2
+    DATA_PARALLELISM=1
     tiles=[]
     for i in range(STG_NUM):  
         tiles.append(tiles_id[i::STG_NUM])
@@ -111,8 +111,8 @@ if __name__ == '__main__':
     #6. log and info output
     gpt_pipe_sim.pipeline_status(clear=True)
 
-    #res_type='edge_dram' or '3dram' or 'noc'
-    wd.resource_visualize(res_type='edge_dram')
+    #res_type='edge_dram' or '3ddram' or 'noc' or 'all'
+    wd.resource_visualize(res_type='edge_dram',clear=True)
 
 
 

@@ -77,15 +77,15 @@ class CompOp():
             if self.ZeRO==ZeRO_strategy.ZeRO_3:
                 zero_w_s_g_access=np.array([1/Nd,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1/Nd,1/Nd,1/Nd])
-                self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
+                self.ZeRO_comm=[2*12*H*H/Nm/1000/1000,2*12*H*H/Nm/1000/1000] #TODO
             elif self.ZeRO==ZeRO_strategy.ZeRO_2:
                 zero_w_s_g_access=np.array([1,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1,1/Nd,1/Nd])
-                self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
+                self.ZeRO_comm=[2*12*H*H/Nm/1000/1000,2*12*H*H/Nm/1000/1000] #TODO
             elif self.ZeRO==ZeRO_strategy.ZeRO_1:
                 zero_w_s_g_access=np.array([1,1/Nd,1])
                 zero_w_s_g=np.array([1,1/Nd,1])
-                self.ZeRO_comm=[2*12*H*H/Nm,2*12*H*H/Nm] #TODO
+                self.ZeRO_comm=[2*12*H*H/Nm/1000/1000,2*12*H*H/Nm/1000/1000] #TODO
             elif self.ZeRO==ZeRO_strategy.none:
                 zero_w_s_g_access=np.array([1,1,1])
                 zero_w_s_g=np.array([1,1,1])

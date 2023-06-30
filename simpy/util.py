@@ -83,9 +83,14 @@ def draw_pipeline(trace_list,path,title,endtime,name='pipeline'):
     plt.ylabel("Stage")
     plt.savefig(os.path.join(path,name+'.png'))
 
+def data_average(data,ave_size=1000):
+    #data type[[start_time,end_time,max_resource],...]
+    assert(ave_size>1)
+    pass
 
 def visualize_resource(data:List,path,name,clear_redundance=True,max_resource=256,ave_unit_ms=1):
     #[(req_flag,req_time,len_q),(res_flag,res_time,len_q)]
+    #print(data)
     if data==[]:
         return None
     q_req=Queue()
@@ -133,9 +138,10 @@ def visualize_resource(data:List,path,name,clear_redundance=True,max_resource=25
     ax = fig.add_subplot(111)
     data0=0
     for data in data_list:
-        #plt.plot([data[0],data[1]],[data[2],data[2]],color='r',linewidth=4)
-        plt.scatter(data[0],data[2],color='r')
+        #plt.plot([data[0],data[1]],[data[2],data[2]],color='r',linewidth=2)
+        plt.scatter(data[0],data[2],color='b')
         plt.scatter(data[1],data[2],color='r')
+        #print(data[1],data[0])
         if data[0]>data0:
             plt.plot([data0,data[0]],[0,0],color='black',linewidth=1)
             data0=data[0]
