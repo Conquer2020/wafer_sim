@@ -125,6 +125,7 @@ class Tile():# for compute process
             exetime=self.compute_cycles(macs_m)/self.freq/1000/1000 #ns to ms
         else:
             exetime=2*macs_m/self.TOPS/1000 # us to ms
+            #print('1',exetime)
         with self.cp_worker.request() as req:
                 yield req
                 #print("tile_comp_process start @ {:.3f} ms".format(self.env.now))

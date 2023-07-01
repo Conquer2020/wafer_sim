@@ -298,6 +298,7 @@ class Wafer_Device():
         chunk_size=comm_size/group_size
         #if DEBUG_MODE:
         #        print("ALL_REDUCE task {} start @ {:.3f} ms".format(task_id,self.env.now))
+        #t_last=self.env.now
         for i in range(group_size-1):
             event_list=[]
             for id_idx in range(group_size-1):
@@ -316,6 +317,8 @@ class Wafer_Device():
             #    print('All-Gather {}/{} phase'.format(i+1,group_size-1))
         #if DEBUG_MODE:
             #    print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
+        #print("ALL_REDUCE task {} end with {:.3f} ms".format(task_id,self.env.now-t_last))
+        
     def ALL_2_ALL_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语及其优化
         #yield self.env.timeout(5)
