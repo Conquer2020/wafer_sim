@@ -18,7 +18,7 @@ if __name__ == '__main__':
         'tile_dram_capacity_GB':6/16,
         'edge_die_dram_bw_GB':512,
         'clk_freq_Ghz':1,
-        'with_3ddram_per_tile':True
+        'with_3ddram_per_tile':False
         }  
     tile_config={
         'tile_name':'tx8',
