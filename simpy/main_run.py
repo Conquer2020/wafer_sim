@@ -10,15 +10,15 @@ if __name__ == '__main__':
     #0 TODO set config info by configparser
     wafer_config={
         'wafer_name':'test',
-        'tile_inter_shape':[4,4],#scale out dimension
+        'tile_inter_shape':[1,4],#scale out dimension
         'tile_intra_shape':[4,4],
-        'tile_intra_noc_bw_GB':1024*1000,
-        'tile_inter_noc_bw_GB':1024*0.6*1000,
+        'tile_intra_noc_bw_GB':1024,
+        'tile_inter_noc_bw_GB':1024*0.6,
         'tile_dram_bw_GB':12288/16/8,
         'tile_dram_capacity_GB':6/16,
         'edge_die_dram_bw_GB':512,
         'clk_freq_Ghz':1,
-        'with_3ddram_per_tile':False
+        'with_3ddram_per_tile':True
         }  
     tile_config={
         'tile_name':'tx8',
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         'freq_GHz':1,
         'with_dram':True,
         'opt':OPTIMIZER.ADAM,
-        'ZeRO':ZeRO_strategy.ZeRO_2
+        'ZeRO':ZeRO_strategy.ZeRO_3 
         }  
     
     #1.define simpy environment
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     #TODO mapping with graph arch info
     tiles_id=wd.device_list() 
     STG_NUM=16
-    DATA_PARALLELISM=1
+    DATA_PARALLELISM=2
     tiles=[]
     for i in range(STG_NUM):  
         tiles.append(tiles_id[i::STG_NUM])
@@ -100,8 +100,8 @@ if __name__ == '__main__':
         noc=wd,
         pipe_type=pipe_strategy.Megatron1F1B
         )
-    gpt_pipe_sim.pipeline_set(boost_mode=False)
-
+    gpt_pipe_sim.pipeline_set(boost_mode=True)
+  
     #5.simpy run  
     ONE_WEEK_MS=24*60*60*7*1000
     scale_sim_time=ONE_WEEK_MS*1000
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     gpt_pipe_sim.pipeline_status(clear=False)
 
     #res_type='edge_dram' or '3ddram' or 'noc' or 'all'
-    wd.resource_visualize(res_type='edge_dram',clear=True)
+    #wd.resource_visualize(res_type='edge_dram',clear=True)
 
 
 

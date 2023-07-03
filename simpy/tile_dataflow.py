@@ -153,6 +153,7 @@ class Tile():# for compute process
     def mapping_analysis(self,stage_info,device:List[int],op_list:List[OpNode],wd1:wd):
         #init 
         #device_gp=device
+        assert(self.with_dram==wd1.with_3ddram_per_tile)
         self.device_id=device
         self.op_list=op_list
         self.noc=wd1
@@ -256,6 +257,7 @@ class Tile():# for compute process
             assert(len(param)==11)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
+            comm_event=None
             if(param[0]!=None):
                 event_list.append(self.noc.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_load,multicast=False))
             if(param[1]!=None):
@@ -272,7 +274,7 @@ class Tile():# for compute process
                 event_list.append(self.tile_comp_process(param[5]))
             if(param[6]!=None):
                 #communication 
-                event_list.append(self.tile_comm_process(param[6],self.noc,event.comm))
+                comm_event=self.tile_comm_process(param[6],self.noc,event.comm)
             if(param[7]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[7]*self.act_bytes,self.device_id,event.act_store,WRITE=True))
             if(param[8]!=None):
@@ -281,7 +283,7 @@ class Tile():# for compute process
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[9]*self.act_bytes*len(self.device_id),group_id=self.device_id,task_id=event.act_store,gather=True))
             if(param[10]!=None):
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[10]*self.act_bytes*len(self.device_id),group_id=self.device_id,task_id=event.act_store,gather=True))
-            return event_list
+            return event_list,comm_event
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
         for op in self.op_list:#@fangjh21.20230609
             access_size_m=0
@@ -445,10 +447,11 @@ class Tile():# for compute process
             else:
                 raise NotImplementedError
             #please notice that the bytes number is considered in execute_template_event function
-            events=analysis_template_event(param)
+            events,comm_event=analysis_template_event(param)
             execute_event=[self.env.process(event) for event in events]
             #print("execute_forward_process start @ {:.3f} ms".format(self.env.now))
             yield simpy.AllOf(self.env,execute_event)
+            yield self.env.process(comm_event)
             #print("execute_forward_process end @ {:.3f} ms".format(self.env.now))
 
     def execute_backward_process(self):
@@ -456,6 +459,7 @@ class Tile():# for compute process
             assert(len(param)==9)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
             event_list=[]
+            comm_event=None
             if(param[0]!=None):
                 event_list.append(self.noc.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_load,multicast=False))
             if(param[1]!=None):
@@ -472,17 +476,18 @@ class Tile():# for compute process
                 event_list.append(self.tile_comp_process(param[5]))
             if(param[6]!=None):
                 #communication 
-                event_list.append(self.tile_comm_process(param[6],self.noc,event.comm))
+                comm_event=self.tile_comm_process(param[6],self.noc,event.comm)
             if(param[7]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[7]*self.act_bytes*len(self.device_id),self.device_id,event.act_store,WRITE=True))
             if(param[8]!=None):
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[8]*self.act_bytes*len(self.device_id),group_id=self.device_id,task_id=event.act_store,gather=True))
             if event_list==[]:
                 event_list=[None]
-            return event_list
+            return event_list,comm_event
         def analysis_template_dloss_event(param=[None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==9)
             event_list=[]
+            comm_event=None
             if(param[0]!=None):
                 event_list.append(self.noc.dram_read_group_process(access_size_MB=param[0]*self.buffer_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_load,multicast=False))
             if(param[1]!=None):
@@ -500,17 +505,18 @@ class Tile():# for compute process
                 event_list.append(self.tile_comp_process(param[5]))
             if(param[6]!=None):
                 #communication 
-                event_list.append(self.tile_comm_process(param[6],self.noc,event.comm))
+                comm_event=self.tile_comm_process(param[6],self.noc,event.comm)
             if(param[7]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[7]*self.act_bytes,self.device_id,event.grad_store,WRITE=True))
             if(param[8]!=None):
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[8]*self.act_bytes*len(self.device_id),group_id=self.device_id,task_id=event.grad_store,gather=True))
             if event_list==[]:
                 event_list=[None]
-            return event_list
+            return event_list,comm_event
         def analysis_template_dW_event(param=[None,None,None,None,None,None,None,None,None,None,None,None,None]):  
             assert(len(param)==13)
             event_list=[]
+            comm_event=None
             if(param[0]!=None):
                 event_list.append(self.noc.dram_read_group_process(access_size_MB=param[0]*self.act_bytes*len(self.device_id),group_id=self.device_id,task_id=event.act_fetch,multicast=False))
             if(param[1]!=None):
@@ -531,7 +537,7 @@ class Tile():# for compute process
                 event_list.append(self.tile_comp_process(param[7]))
             if(param[8]!=None):
                 #communication 
-                event_list.append(self.tile_comm_process(param[8],self.noc,event.comm))
+                comm_event=self.tile_comm_process(param[8],self.noc,event.comm)
             if(param[9]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[9]*self.full_bytes,self.device_id,event.opt_store,WRITE=True))
             if(param[10]!=None):
@@ -542,7 +548,7 @@ class Tile():# for compute process
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[12]*self.full_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_store,gather=True))
             if event_list==[]:
                 event_list=[None]
-            return event_list 
+            return event_list,comm_event 
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
 
         for op in self.op_list:
@@ -806,17 +812,21 @@ class Tile():# for compute process
                 raise NotImplementedError
             
             if recomputes2==recompute_strategy.all:
-                events=analysis_template_recompute_event(re_param)
+                events,comm_event=analysis_template_recompute_event(re_param)
                 execute_event=[self.env.process(event) for event in events]
                 yield simpy.AllOf(self.env,execute_event)
+                yield self.env.process(comm_event)
             else:
                 pass
-            events=analysis_template_dloss_event(dloss_param)
+            events,comm_event=analysis_template_dloss_event(dloss_param)
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
-            events=analysis_template_dW_event(dW_param)
+            yield self.env.process(comm_event)
+            events,comm_event=analysis_template_dW_event(dW_param)
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
+            #if comm_event!=None:
+            #    yield self.env.process(comm_event)
     def execute_weight_update_process(self):
         def analysis_template_event(param=[None,None,None,None,None,None,None]):
             assert(len(param)==7)
