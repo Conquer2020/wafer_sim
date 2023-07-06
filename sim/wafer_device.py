@@ -321,29 +321,15 @@ class Wafer_Device():
         
     def ALL_2_ALL_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语及其优化
-        #yield self.env.timeout(5)
         group_size=len(group_id)
+        #print(group_size)
         chunk_size=comm_size/group_size
-        #if DEBUG_MODE:
-        #        print("ALL_REDUCE task {} start @ {:.3f} ms".format(task_id,self.env.now))
         for i in range(group_size-1):
             event_list=[]
-            for id_idx in range(group_size-1):
-                event_list.append(self.env.process(self.noc_process(chunk_size,group_id[id_idx],group_id[id_idx+1])))
-            event_list.append(self.env.process(self.noc_process(chunk_size,group_id[-1],group_id[0])))
+            for id_idx in range(group_size):
+                des_id=(id_idx+i+1 )% group_size
+                event_list.append(self.env.process(self.noc_process(chunk_size,group_id[id_idx],group_id[des_id])))
             yield simpy.AllOf(self.env, event_list)
-            #if DEBUG_MODE:
-            #    print('Reduce-Scatter {}/{} phase'.format(i+1,group_size-1))
-        for i in range(group_size-1):
-            event_list=[]
-            for id_idx in range(group_size-1):
-                event_list.append(self.env.process(self.noc_process(chunk_size,group_id[id_idx],group_id[id_idx+1])))
-            event_list.append(self.env.process(self.noc_process(chunk_size,group_id[-1],group_id[0])))
-            yield simpy.AllOf(self.env, event_list)
-            #if DEBUG_MODE:
-            #    print('All-Gather {}/{} phase'.format(i+1,group_size-1))
-        #if DEBUG_MODE:
-            #    print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
     def STAGE_PASS_process(self,comm_size:Union[int,Packet],group_a:List[int],group_b:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语
         if type(comm_size) is Packet:

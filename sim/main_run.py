@@ -1,22 +1,21 @@
-
+ 
 from wafer_device import Wafer_Device 
 from comp_graph import CompGraph
 import pipeline as pipe
 from ML import *
 import simpy
 import math
-
 if __name__ == '__main__':
     #0 TODO set config info by configparser
     wafer_config={
         'wafer_name':'test',
-        'tile_inter_shape':[1,4],#scale out dimension
+        'tile_inter_shape':[4,4],#scale out dimension
         'tile_intra_shape':[4,4],
         'tile_intra_noc_bw_GB':1024,
-        'tile_inter_noc_bw_GB':1024*0.6,
+        'tile_inter_noc_bw_GB':1024*0.6*1000,
         'tile_dram_bw_GB':12288/16/8,
         'tile_dram_capacity_GB':6/16,
-        'edge_die_dram_bw_GB':512,
+        'edge_die_dram_bw_GB':512*1000,
         'clk_freq_Ghz':1,
         'with_3ddram_per_tile':True
         }  
@@ -100,7 +99,7 @@ if __name__ == '__main__':
         noc=wd,
         pipe_type=pipe_strategy.Megatron1F1B
         )
-    gpt_pipe_sim.pipeline_set(boost_mode=True)
+    gpt_pipe_sim.pipeline_set(boost_mode=False)
   
     #5.simpy run  
     ONE_WEEK_MS=24*60*60*7*1000
