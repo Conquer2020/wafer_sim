@@ -4,29 +4,26 @@ import json
 from typing import List,Optional
 from op_pd import Oppd
 from util import *
-
-
 class OpNode(Oppd):
     def __init__(self, op_type:OP, op_param: List[int], hint_name: str) -> None:
         super().__init__(op_type, op_param, hint_name)
-        self.nxt_lt=[]
-        self.isTraversed=False
+        self.next_nodes=[]
+        self.last_nodes=[]
+        #self.isTraversed=False
     def __str__(self):
-        nxt_lt_id=[it.hint_name for it in self.nxt_lt]
         if self.dpmap_flag:
-            return '{}:({},{}),p_sgy={},device={},child_nodes:{}\n'.\
-                format(self.hint_name,self.type,self.param_dim,self.p_sgy,self.device,nxt_lt_id)
+            return '{}:({},{}),p_sgy={},device={},parent_nodes:{},child_nodes:{}\n'.\
+                format(self.hint_name,self.type,self.param_dim,self.p_sgy,self.device,self.last_nodes,self.next_nodes)
         else:
-            return '{}:({},{}),child_nodes:{}\n'.\
-                format(self.hint_name,self.type,self.param_dim,nxt_lt_id)
+            return '{}:({},{}),parent_nodes:{},child_nodes:{}\n'.\
+                format(self.hint_name,self.type,self.param_dim,self.last_nodes,self.next_nodes)
         
     @staticmethod
     def _op2dict(op):
-        nxt_lt_id=[it.hint_name for it in op.nxt_lt]
         op_dict={}
         op_dict['type']=str(op.type.name)
         op_dict['param_dim']=str(op.param_dim)
-        op_dict['child_nodes']=str(nxt_lt_id)
+        op_dict['child_nodes']=str(op.next_nodes)
         if op.dpmap_flag:
             op_dict['p_sgy']=str(op.p_sgy)
             op_dict['device']=str(op.device)
@@ -36,29 +33,24 @@ class OpNode(Oppd):
     def _json2op(json):
         pass   
 class CompGraph():
-    def __init__(self,root:Optional[OpNode]=None,name='t_Compute_Graph',meta='20230424') -> None:
+    def __init__(self,root:str=None,name='t_Compute_Graph',meta='20230424') -> None:
         self.name=name
         self.meta=meta
         self.root=root
         self.cur=root
         self.op_dict={}
-        self.iter=self.next_op(self.root)
-    def next_op(self,cur:OpNode):
-        #one op node in ML compute graph my have more than one parent node.
-        #so when traverse graph,we have to avoid visit one node twice with 'isTraversed' flag
-        #However, 'isTraversed' should be clear before next graph traverse
-        #TODO 不灵活，遍历后isTraversed flag拉高,下次遍历前需要清除flag
-        cur.isTraversed=True
-        yield cur
-        if cur.nxt_lt!=[]:
-            for nxt_op in cur.nxt_lt: 
-                if not nxt_op.isTraversed:
-                    for op in self.next_op(nxt_op):
-                        yield op
+        self.__iter_index=0
+        self.__iter_items=None
     def __iter__(self):
         return self
     def __next__(self):
-        return next(self.iter)
+        if self.__iter_index==0:
+            self.__iter_items=iter(self.op_dict.items())
+        elif self.__iter_index==len(self.op_dict):
+             self.__iter_index=0
+             raise StopIteration
+        self.__iter_index+=1
+        return next(self.__iter_items)
     def __str__(self):
         Compute_Graph_str='CompGraph:{}'.format(self.name)
         Compute_Graph_str+=',Root:{}\n'.format(self.root.hint_name)
@@ -69,22 +61,26 @@ class CompGraph():
     def _graph2dict(CompGraph):
         graph_dict={}
         graph_dict['graph_name']=CompGraph.name
-        graph_dict['root_name']=CompGraph.root.hint_name
+        graph_dict['root_name']=CompGraph.root
         for op in CompGraph:
+             print(op)
              graph_dict[op.hint_name]=OpNode._op2dict(op)
         return graph_dict
 
     def AddEdge(self,son_Op_Node:OpNode,prt_Op_Node:Optional[OpNode]=None):
+        son_op_name=son_Op_Node.hint_name
         if prt_Op_Node==None and self.root==None:
-            self.root=son_Op_Node
+            self.root=son_op_name
             self.cur=self.root
-            self.iter=self.next_op(self.root)
         elif prt_Op_Node==None:   
-            self.cur.nxt_lt.append(son_Op_Node)
+            son_Op_Node.last_nodes.append(self.op_dict[self.cur].hint_name)
+            self.op_dict[self.cur].next_nodes.append(son_op_name)
         else:
-            prt_Op_Node.nxt_lt.append(son_Op_Node)
-            self.cur=son_Op_Node
+            prt_Op_Node.next_nodes.append(son_op_name)
+            son_Op_Node.last_nodes.append(prt_Op_Node.hint_name)
+            self.cur=son_op_name
         self.op_dict[son_Op_Node.hint_name]=son_Op_Node
+
     def AddSubGraph(self,prt_Op_Node:OpNode,SubGraph):
         #TODO
         pass
@@ -176,9 +172,13 @@ if __name__ == '__main__':
     op2.dpmap(device_id=[4,5])
     op3.dpmap(device_id=[6,7,10,11,14,15])
     op4.dpmap(device_id=[12,13])
-    CompGraph.gwrite(gp)
-    
-    gp1=CompGraph.gread(path='test',name='gh.json')
-    #with stage info
-    CompGraph.gwrite(gp1,path='test',name='gh1.json')
+    for op in gp:
+        print(op)
+    for op in gp:
+        print(op)
+    '''
+    CompGraph.gwrite(gp,path='mljson',name='test.json')
+    gp1=CompGraph.gread(path='mljson',name='test.json')
+    CompGraph.gwrite(gp1,path='mljson',name='test1.json')
+    '''
 
