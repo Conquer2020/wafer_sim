@@ -20,10 +20,12 @@ class OpNode(Oppd):
         
     @staticmethod
     def _op2dict(op):
+        #print(op)
         op_dict={}
         op_dict['type']=str(op.type.name)
         op_dict['param_dim']=str(op.param_dim)
         op_dict['child_nodes']=str(op.next_nodes)
+        op_dict['parent_nodes']=str(op.last_nodes)
         if op.dpmap_flag:
             op_dict['p_sgy']=str(op.p_sgy)
             op_dict['device']=str(op.device)
@@ -45,7 +47,7 @@ class CompGraph():
         return self
     def __next__(self):
         if self.__iter_index==0:
-            self.__iter_items=iter(self.op_dict.items())
+            self.__iter_items=iter(self.op_dict.values())
         elif self.__iter_index==len(self.op_dict):
              self.__iter_index=0
              raise StopIteration
@@ -63,7 +65,7 @@ class CompGraph():
         graph_dict['graph_name']=CompGraph.name
         graph_dict['root_name']=CompGraph.root
         for op in CompGraph:
-             print(op)
+             #print(op)
              graph_dict[op.hint_name]=OpNode._op2dict(op)
         return graph_dict
 
@@ -124,7 +126,7 @@ class CompGraph():
                     elif op_key=='param_dim':
                         op_param=str2list(op_dict[op_key])
                     elif op_key=='child_nodes':
-                        op_next_op=str2strlist(op_dict[op_key])
+                        op_next_op=str2strlist(op_dict[op_key])                   
                     elif op_key=='p_sgy':
                         op_plm_dim=str2list(op_dict[op_key])
                     elif op_key=='device':
@@ -165,20 +167,13 @@ if __name__ == '__main__':
     gp.AddEdge(op3,op2)
     gp.AddEdge(op4,op1)
     gp.AddEdge(op3,op4)
-
-
     #mapping by hand
     op1.dpmap(device_id=[0,1,2,3])
     op2.dpmap(device_id=[4,5])
     op3.dpmap(device_id=[6,7,10,11,14,15])
     op4.dpmap(device_id=[12,13])
-    for op in gp:
-        print(op)
-    for op in gp:
-        print(op)
-    '''
     CompGraph.gwrite(gp,path='mljson',name='test.json')
     gp1=CompGraph.gread(path='mljson',name='test.json')
     CompGraph.gwrite(gp1,path='mljson',name='test1.json')
-    '''
+
 

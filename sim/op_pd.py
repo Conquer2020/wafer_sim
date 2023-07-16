@@ -13,6 +13,8 @@ class CompOp():
 
         self.o_shape=[]
         self.i_shape=[]
+
+        self.unit_m=1000*1000
         #for complex op like transformer @fangjh21.202306602
         #influenced by parallism strategy
         #capacity req
@@ -40,14 +42,14 @@ class CompOp():
             self.i_shape=[B//Nd,N//Nm_N,K//Nm_K] #[B,K,N]  
             #capacity req
             self.intra_act_size_m=0 
-            self.w_s_g_size_m=[(M*K+M)/Nm_M/Nm_N/Nm_K/1000/1000,2*(M*K+M)/Nm_M/Nm_N/Nm_K/1000/1000,(M*K+M)/Nm_M/Nm_N/Nm_K/1000/1000]
+            self.w_s_g_size_m=[(M*K+M)/Nm_M/Nm_N/Nm_K/self.unit_m,2*(M*K+M)/Nm_M/Nm_N/Nm_K/self.unit_m,(M*K+M)/Nm_M/Nm_N/Nm_K/self.unit_m]
             #bandwidth req
             self.intra_act_access_m=0
             self.w_s_g_access_m=self.w_s_g_size_m
             #compute power req
             #TODO 
             assert(self.ZeRO==ZeRO_strategy.none)
-            self.fd_macs_m=B*M*N*K/Nd/Nm_M/Nm_N/Nm_K/1000/1000
+            self.fd_macs_m=B*M*N*K/Nd/Nm_M/Nm_N/Nm_K/self.unit_m
             self.f_b_u_comm=[0,0,0]
             self.ZeRO_comm=[0,0]
 
@@ -63,14 +65,14 @@ class CompOp():
 
             #capacity req
             self.intra_act_size_m=0 
-            self.w_s_g_size_m=[(R*S*C/Nm_C+1)*K/Nm_K/1000/1000,2*(R*S*C/Nm_C+1)*K/Nm_K/1000/1000,(R*S*C/Nm_C+1)*K/Nm_K/1000/1000]
+            self.w_s_g_size_m=[(R*S*C/Nm_C+1)*K/Nm_K/self.unit_m,2*(R*S*C/Nm_C+1)*K/Nm_K/self.unit_m,(R*S*C/Nm_C+1)*K/Nm_K/self.unit_m]
             #bandwidth req
             self.intra_act_access_m=0
             self.w_s_g_access_m=self.w_s_g_size_m
             #compute power req
             #TODO 
             assert(self.ZeRO==ZeRO_strategy.none)
-            self.fd_macs_m=C//Nm_C*R*S*o_h*o_w*K//Nm_K/1000/1000
+            self.fd_macs_m=C//Nm_C*R*S*o_h*o_w*K//Nm_K/self.unit_m
             self.f_b_u_comm=[0,0,0]
             self.ZeRO_comm=[0,0]
 
@@ -86,15 +88,15 @@ class CompOp():
 
             #capacity req
             self.intra_act_size_m=0 
-            w_size_m=emb_dim/Nm_emb_dim*emb_size_total/Nm_emb_size/1000/1000 #emb_size
-            grad_size_m=(batch_size//Nd*emb_dim//Nm_emb_dim)*emb_num/1000/1000
+            w_size_m=emb_dim/Nm_emb_dim*emb_size_total/Nm_emb_size/self.unit_m #emb_size
+            grad_size_m=(batch_size//Nd*emb_dim//Nm_emb_dim)*emb_num/self.unit_m
             self.w_s_g_size_m=[w_size_m,2*grad_size_m,grad_size_m]
             #bandwidth req
             self.intra_act_access_m=0
             self.w_s_g_access_m=self.w_s_g_size_m
             #compute power req
             assert(self.ZeRO==ZeRO_strategy.none)
-            self.fd_macs_m=0#batch_size*input_dim*math.log(emb_size_total)/1000/1000
+            self.fd_macs_m=0#batch_size*input_dim*math.log(emb_size_total)/self.unit_m
             #TODO
             self.f_b_u_comm=[0,0,0]
             self.ZeRO_comm=[0,0]
@@ -107,34 +109,34 @@ class CompOp():
             self.o_shape=[B//Nd,S,H]
             self.i_shape=[B//Nd,S,H]  
 
-            w_s_g=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])/1000/1000
+            w_s_g=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])/self.unit_m
             zero_w_s_g=np.array([1,1,1])
-            w_s_g_access=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])/1000/1000
+            w_s_g_access=np.array([12*H*H/Nm,3*12*H*H/Nm,12*H*H/Nm])/self.unit_m
             zero_w_s_g_access=np.array([1,1,1])
             self.ZeRO_comm=[0,0]
             #reference:Wang huizheng's
             if self.ZeRO==ZeRO_strategy.ZeRO_3:
                 zero_w_s_g_access=np.array([1/Nd,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1/Nd,1/Nd,1/Nd])
-                self.ZeRO_comm=[2*12*H*H/Nm/1000/1000,2*12*H*H/Nm/1000/1000] #TODO
+                self.ZeRO_comm=[2*12*H*H/Nm/self.unit_m,2*12*H*H/Nm/self.unit_m] #TODO
             elif self.ZeRO==ZeRO_strategy.ZeRO_2:
                 zero_w_s_g_access=np.array([1,1/Nd,1/Nd])
                 zero_w_s_g=np.array([1,1/Nd,1/Nd])
-                self.ZeRO_comm=[2*12*H*H/Nm/1000/1000,2*12*H*H/Nm/1000/1000] #TODO
+                self.ZeRO_comm=[2*12*H*H/Nm/self.unit_m,2*12*H*H/Nm/self.unit_m] #TODO
             elif self.ZeRO==ZeRO_strategy.ZeRO_1:
                 zero_w_s_g_access=np.array([1,1/Nd,1])
                 zero_w_s_g=np.array([1,1/Nd,1])
-                self.ZeRO_comm=[2*12*H*H/Nm/1000/1000,2*12*H*H/Nm/1000/1000] #TODO
+                self.ZeRO_comm=[2*12*H*H/Nm/self.unit_m,2*12*H*H/Nm/self.unit_m] #TODO
             elif self.ZeRO==ZeRO_strategy.none:
                 zero_w_s_g_access=np.array([1,1,1])
                 zero_w_s_g=np.array([1,1,1])
                 self.ZeRO_comm=[0,0]
             self.w_s_g_size_m=(w_s_g*zero_w_s_g).tolist()#capacity req
             self.w_s_g_access_m=(w_s_g_access*zero_w_s_g_access).tolist()#bandwidth req
-            self.f_b_u_comm=[2*12*B*S*H/Nd/1000/1000,2*12*B*S*H/Nd/1000/1000,12*H*H/Nm/1000/1000]
-            self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd/1000/1000
-            self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd/1000/1000#bandwidth req
-            self.fd_macs_m=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm/1000/1000#compute power req
+            self.f_b_u_comm=[2*12*B*S*H/Nd/self.unit_m,2*12*B*S*H/Nd/self.unit_m,12*H*H/Nm/self.unit_m]
+            self.intra_act_size_m=B*S*((15*H+2.5*A*S)/Nm+2*H)/Nd/self.unit_m
+            self.intra_act_access_m=((34*B*S*H+7*B*A*S*S)/Nm+4*B*S*H)/Nd/self.unit_m#bandwidth req
+            self.fd_macs_m=(24*B*S*H*H+4*B*S*S*H)/Nd/Nm/self.unit_m#compute power req
         else:
             #TODO
             self.o_shape=0 
