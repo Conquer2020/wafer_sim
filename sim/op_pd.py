@@ -2,6 +2,7 @@ from ML import *
 from util import *
 from typing import List,Optional,Union
 import numpy as np
+import math
 class CompOp():
     def __init__(self,op_type:OP,op_param:List[int],p_sgy:List[int]=[1,1]) -> None:
         #base info 
@@ -73,23 +74,27 @@ class CompOp():
             self.ZeRO_comm=[0,0]
 
         elif self.type==OP.Embedding:
-            #   TODO
+            #TODO
             assert(len(self.param_dim)==4 and len(self.p_sgy)==3)
-            [batch_size,input_dim,emb_dim,emb_num]=self.param_dim
-            [Nd,Nm_M,Nm_N,Nm_K]=self.p_sgy 
+            [batch_size,input_dim,emb_dim,emb_size_list]=self.param_dim
+            [Nd,Nm_emb_dim,Nm_emb_size]=self.p_sgy 
+            emb_size_total=sum(emb_size_list)#/Nm_emb_size
+            emb_num=len(emb_size_list)
+            self.o_shape=[batch_size//Nd,input_dim,emb_dim//Nm_emb_dim]
+            self.i_shape=[batch_size//Nd,input_dim] 
 
-            self.o_shape=[B//Nd,M//Nm_M,N//Nm_N] #[B,M,N]
-            self.i_shape=[B//Nd,N//Nm_N,K//Nm_K] #[B,K,N]  
             #capacity req
             self.intra_act_size_m=0 
-            self.w_s_g_size_m=[(M*K+M)/Nm_M/Nm_N/Nm_K/1000/1000,2*(M*K+M)/Nm_M/Nm_N/Nm_K/1000/1000,(M*K+M)/Nm_M/Nm_N/Nm_K/1000/1000]
+            w_size_m=emb_dim/Nm_emb_dim*emb_size_total/Nm_emb_size/1000/1000 #emb_size
+            grad_size_m=(batch_size//Nd*emb_dim//Nm_emb_dim)*emb_num/1000/1000
+            self.w_s_g_size_m=[w_size_m,2*grad_size_m,grad_size_m]
             #bandwidth req
             self.intra_act_access_m=0
             self.w_s_g_access_m=self.w_s_g_size_m
             #compute power req
-            #TODO 
             assert(self.ZeRO==ZeRO_strategy.none)
-            self.fd_macs_m=B*M*N*K/Nd/Nm_M/Nm_N/Nm_K/1000/1000
+            self.fd_macs_m=0#batch_size*input_dim*math.log(emb_size_total)/1000/1000
+            #TODO
             self.f_b_u_comm=[0,0,0]
             self.ZeRO_comm=[0,0]
 

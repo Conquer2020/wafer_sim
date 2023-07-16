@@ -8,21 +8,16 @@ import math
 
 
 def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Device):
-    #gpt_gp=CompGraph.gread(path='mljson',name='gpt-3.json')
-    batch_size=gpt_gp.root.param_dim[0]
-    #print(batch_size)
-    #print(wd.tile_inter_noc_bw_GB)
-    #3.mapping by hand
-    #TODO mapping with graph arch info
     tiles_id=wd.device_list() 
     STG_NUM=16
     DATA_PARALLELISM=2
     tiles=[]
-    for i in range(STG_NUM):  
+    for i in range(STG_NUM):
+        print(tiles_id[i::STG_NUM])  
         tiles.append(tiles_id[i::STG_NUM])
     Layers_num=len(gpt_gp)
     nums_per_stg=math.ceil(Layers_num/STG_NUM)
-
+    print(tiles)
     j=0
     ops=[]
     ops_per_stg=[]
@@ -42,9 +37,7 @@ def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Dev
     if ops!=[]:
         ops_per_stg[-1].append(op)
     #write graph with device to file
-    #CompGraph.gwrite(gpt_gp,path='mljson',name='gpt_dp_test.json')
-
-    #4.pipeline define and set
+    CompGraph.gwrite(gpt_gp,path='mljson',name='gpt_map.json')
     stgs=[]
     for i in range(STG_NUM):
         last_core_id=None if i==0 else tiles[i-1]

@@ -5,12 +5,11 @@ from model_mapping import mapping
 import pipeline as pipe
 from ML import *
 import simpy
-import math
 if __name__ == '__main__':
     #0 TODO set config info by configparser
     wafer_config={
         'wafer_name':'test',
-        'tile_inter_shape':[4,4],#scale out dimension
+        'tile_inter_shape':[1,4],#scale out dimension
         'tile_intra_shape':[4,4],
         'tile_intra_noc_bw_GB':1024,
         'tile_inter_noc_bw_GB':1024*0.6,
@@ -49,7 +48,6 @@ if __name__ == '__main__':
     #read ml compute graph from json file or define ml compute graph by yourself
     gpt_gp=CompGraph.gread(path='mljson',name='gpt-3.json')
     batch_size=gpt_gp.root.param_dim[0]
-    
     #3.mapping by hand
     stgs=mapping(env,gpt_gp,tile_config,wd)
     STG_NUM=len(stgs)
