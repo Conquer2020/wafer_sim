@@ -9,7 +9,6 @@ class OpNode(Oppd):
         super().__init__(op_type, op_param, hint_name)
         self.next_nodes=[]
         self.last_nodes=[]
-        #self.isTraversed=False
     def __str__(self):
         if self.dpmap_flag:
             return '{}:({},{}),p_sgy={},device={},parent_nodes:{},child_nodes:{}\n'.\
@@ -101,7 +100,6 @@ class CompGraph():
         whole_path_filename = os.path.join(path, name)
         with open(whole_path_filename, mode="r", encoding='utf-8') as f:
             gpdict=json.load(f)
-        #print(gpdict)
         gp=CompGraph()
         root_index=''
         i=0
@@ -141,7 +139,6 @@ class CompGraph():
             for op_son in op_next_dict[op_father]:
                 if op_son!=[] or op_son!=None:
                     gp.AddEdge(ops_dict[op_son],ops_dict[op_father])
-
         return gp
 
     @staticmethod
