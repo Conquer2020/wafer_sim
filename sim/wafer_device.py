@@ -227,7 +227,7 @@ class Wafer_Device():
             dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
             yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
             #if DEBUG_MODE:
-            #    print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
+            #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
     def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
         #x0=self.tile_intra_shape[0]
@@ -248,7 +248,7 @@ class Wafer_Device():
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,des_id,src_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))
             #if DEBUG_MODE:
-            #    print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
+            #print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
             break
     def tile_dram_access_process(self,access_size_MB,src_id,task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         while(True):
@@ -268,6 +268,7 @@ class Wafer_Device():
             #print(access_size_MB) 
         while(True):
             #print("task {} start dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
+            #print(group_id[0])
             yield self.env.process(self.edge_dram_read_process(access_size_MB,group_id[0],task_id))
             g_size=len(group_id)  
             for i in range(1,g_size):
@@ -408,6 +409,8 @@ if __name__ == '__main__':
     env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=8,DEBUG_MODE=Debug))
     env.process(wd.STAGE_PASS_process(10,[0,1,2,3,5],[8,9],'TEST'))
     '''
-    env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
+    #env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_read_process(100,7))
+    env.process(wd.edge_dram_read_process(100,8))
     env.run(until=10000)
  
