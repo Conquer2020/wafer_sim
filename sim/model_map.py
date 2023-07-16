@@ -9,15 +9,15 @@ import math
 
 def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Device):
     tiles_id=wd.device_list() 
-    STG_NUM=16
-    DATA_PARALLELISM=2
+    STG_NUM=96
+    DATA_PARALLELISM=1
     tiles=[]
     for i in range(STG_NUM):
         print(tiles_id[i::STG_NUM])  
         tiles.append(tiles_id[i::STG_NUM])
     Layers_num=len(gpt_gp)
     nums_per_stg=math.ceil(Layers_num/STG_NUM)
-    print(tiles)
+    #print(tiles)
     j=0
     ops=[]
     ops_per_stg=[]
@@ -25,8 +25,7 @@ def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Dev
         d_size=len(tiles[j])
         dp=DATA_PARALLELISM
         mp=d_size//dp
-        #make sure that product of model parallelism and data parallelism is equal to numbers of device 
-        assert(mp*dp==d_size)
+        assert mp*dp==d_size,'make sure that mp*dp=d_size'
         op=gpt_gp.op_dict[op_name]
         op.dpmap(device_id=tiles[j],p_sgy=[dp,mp])
         ops.append(op)

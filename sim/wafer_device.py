@@ -230,11 +230,8 @@ class Wafer_Device():
             #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
     def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
-        #x0=self.tile_intra_shape[0]
-        #x1=self.tile_inter_shape[0]
-        #y0=self.tile_intra_shape[1]
-        #y1=self.tile_inter_shape[1]
-        x1=self.tile_inter_shape[0]
+        x1=self.tile_inter_shape[1]
+        x0=self.tile_inter_shape[0]
         y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
         row_line=int(src_id /y)+1
         des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
@@ -242,8 +239,11 @@ class Wafer_Device():
             #if DEBUG_MODE:
             #    print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
             dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
-            #print(dram_index)
-            #print(len(self.edge_dram_resource))
+            print('int(des_id/ y)',int(des_id/ y))
+            print('x1',x1)
+            #print('int(des_id/ y)+x1',int(des_id/ y)+x1)
+            print('dram_index',dram_index)
+            print(len(self.edge_dram_resource))
             yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=False))
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,des_id,src_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))

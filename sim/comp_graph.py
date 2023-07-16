@@ -42,6 +42,7 @@ class CompGraph():
         self.op_dict={}
         self.__iter_index=0
         self.__iter_items=None
+        self.batch_size=0
     def __iter__(self):
         return self
     def __next__(self):
@@ -72,6 +73,7 @@ class CompGraph():
         son_op_name=son_Op_Node.hint_name
         if prt_Op_Node==None and self.root==None:
             self.root=son_op_name
+            self.batch_size=son_Op_Node.param_dim[0]
             self.cur=self.root
         elif prt_Op_Node==None:   
             son_Op_Node.last_nodes.append(self.op_dict[self.cur].hint_name)
