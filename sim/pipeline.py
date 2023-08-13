@@ -25,7 +25,8 @@ class Stage():
                 dram_bw_GB=noc.tile_dram_bw_GB,
                 dram_capacity_GB=noc.tile_dram_capacity_GB,
                 opt=tile_config['opt'],
-                ZeRO=tile_config['ZeRO']
+                ZeRO=tile_config['ZeRO'],
+                Analytical=tile_config['Analytical']
                 )
         self.op_list=op_list
         self.i_shape=[]

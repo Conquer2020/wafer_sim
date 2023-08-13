@@ -10,9 +10,16 @@ from op_pd import CommOp
 
 class Tile():# for compute process
     def __init__(self,env,tile_name='tx8',
-                 sram_capacity_MB=3,macs=4000,freq_GHz=1,\
-                 with_dram=True,dram_bw_GB=12288/16/8,dram_capacity_GB=6/16,
-                    opt=OPTIMIZER.ADAM,ZeRO=ZeRO_strategy.ZeRO_2) -> None:
+                sram_capacity_MB=3,
+                macs=4000,
+                freq_GHz=1,
+                with_dram=True,
+                dram_bw_GB=12288/16/8,
+                dram_capacity_GB=6/16,
+                opt=OPTIMIZER.ADAM,
+                ZeRO=ZeRO_strategy.ZeRO_2,
+                Analytical=True
+                ) -> None:
         #info
         self.tile_name=tile_name
 
@@ -46,9 +53,10 @@ class Tile():# for compute process
 
         #simpy env
         self.env=env
-        self.cp_worker= simpy.Resource(env, capacity=1)
-        self.cm_worker= simpy.Resource(env, capacity=1)
-
+        self.Analytical=Analytical
+        if self.Analytical:
+            self.cp_worker= simpy.Resource(env, capacity=1)
+            self.cm_worker= simpy.Resource(env, capacity=1)
         #mapping op
         self.map_ana=[]
         self.device_id=[]
@@ -117,7 +125,6 @@ class Tile():# for compute process
     def tile_comp_process(self,macs_m:Union[float,List[int]]):
         '''
         this is the tile compute process
-
         the input is macs(M) or [M,N,K] parameter
         '''
         exetime=0.0
@@ -125,12 +132,12 @@ class Tile():# for compute process
             exetime=self.compute_cycles(macs_m)/self.freq/1000/1000 #ns to ms
         else:
             exetime=2*macs_m/self.TOPS/1000 # us to ms
-            #print('1',exetime)
-        with self.cp_worker.request() as req:
-                yield req
-                #print("tile_comp_process start @ {:.3f} ms".format(self.env.now))
-                yield self.env.timeout(exetime)
-                #print("tile_comp_process end   @ {:.3f} ms".format(self.env.now))
+        if not self.Analytical:
+            with self.cp_worker.request() as req:
+                    yield req
+                    yield self.env.timeout(exetime)
+        else:
+            yield self.env.timeout(exetime)            
     def tile_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:event=event.comm,overlap=False):
         '''
         this is the tile communication process
@@ -138,18 +145,30 @@ class Tile():# for compute process
         comm_mbytes=0
         #print(comm_op)
         #here if communication can not overlap by compute time,the 'cm_worker' should to be 'cp_worker'
-        with (self.cm_worker.request() if overlap else self.cp_worker.request()) as req:
-                yield req       
-                for gp in comm_op.device_group:
-                    comm_mbytes=comm_op.size*self.comm_bytes
-                    if comm_op.type==COMM.ALL_REDUCE:
-                        yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
-                    elif comm_op.type==COMM.ALL_2_ALL:
-                        yield wd1.env.process(wd1.ALL_REDUCE_process(comm_mbytes,gp,traffic_tpye))
-                    elif comm_op.type==COMM.NONE:
-                        pass
-                    else:
-                        pass
+        if not self.Analytical:
+            with (self.cm_worker.request() if overlap else self.cp_worker.request()) as req:
+                    yield req       
+                    for gp in comm_op.device_group:
+                        comm_mbytes=comm_op.size*self.comm_bytes
+                        if comm_op.type==COMM.ALL_REDUCE:
+                            yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
+                        elif comm_op.type==COMM.ALL_2_ALL:
+                            yield wd1.env.process(wd1.ALL_REDUCE_process(comm_mbytes,gp,traffic_tpye))
+                        elif comm_op.type==COMM.NONE:
+                            pass
+                        else:
+                            pass
+        else:
+            for gp in comm_op.device_group:
+                comm_mbytes=comm_op.size*self.comm_bytes
+                if comm_op.type==COMM.ALL_REDUCE:
+                    yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
+                elif comm_op.type==COMM.ALL_2_ALL:
+                    yield wd1.env.process(wd1.ALL_REDUCE_process(comm_mbytes,gp,traffic_tpye))
+                elif comm_op.type==COMM.NONE:
+                    pass
+                else:
+                    pass
     def mapping_analysis(self,stage_info,device:List[int],op_list:List[OpNode],wd1:wd):
         #init 
         #device_gp=device
@@ -244,7 +263,7 @@ class Tile():# for compute process
                 edgedram4=store_strategy.ACT_weight
 
         self.map_ana=[dataflow0,sram1,recomputes2,tiledram3,edgedram4]
-        print(self.map_ana)
+        #print(self.map_ana)
         '''
         self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)

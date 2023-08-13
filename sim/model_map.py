@@ -9,11 +9,11 @@ import math
 
 def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Device):
     tiles_id=wd.device_list() 
-    STG_NUM=96
+    STG_NUM=32
     DATA_PARALLELISM=1
     tiles=[]
     for i in range(STG_NUM):
-        print(tiles_id[i::STG_NUM])  
+        #print(tiles_id[i::STG_NUM])  
         tiles.append(tiles_id[i::STG_NUM])
     Layers_num=len(gpt_gp)
     nums_per_stg=math.ceil(Layers_num/STG_NUM)

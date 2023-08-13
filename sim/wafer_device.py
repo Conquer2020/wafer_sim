@@ -41,17 +41,22 @@ class dram_model():
     def access_process(self,data_size_MB,task_id=1,write=True,DEBUG_MODE=False):
         with self.access_resource.request() as req:
             yield req 
-            #if DEBUG_MODE:
-            #    print("{}:{} access  processing...  @ {:.3f} ms".format(task_id,self.name,self.env.now))
             latency=data_size_MB/self.bw_GB
             latency+=self.write_latency if write else self.read_latency
             yield self.env.timeout(latency)
 
 class Wafer_Device():
-    def __init__(self,env,wafer_name='test_wafer',tile_intra_shape=[4,4],tile_inter_shape=[2,2],\
-                    tile_intra_noc_bw_GB=256,tile_inter_noc_bw_GB=256*0.6,\
-                    tile_dram_bw_GB=12288/16/8,tile_dram_capacity_GB=6/16,
-                        edge_die_dram_bw_GB=256,clk_freq_Ghz=1,with_3ddram_per_tile=True) -> None:
+    def __init__(self,env,wafer_name='test_wafer',
+                tile_intra_shape=[4,4],tile_inter_shape=[2,2],
+                tile_intra_noc_bw_GB=256,
+                tile_inter_noc_bw_GB=256*0.6,
+                tile_dram_bw_GB=12288/16/8,
+                tile_dram_capacity_GB=6/16,
+                edge_die_dram_bw_GB=256,
+                clk_freq_GHz=1,
+                with_3ddram_per_tile=True,
+                Analytical=True
+                ) -> None:
         #@3ddram data from wanghuizheng
         self.wafer_name=wafer_name
 
@@ -65,19 +70,21 @@ class Wafer_Device():
         self.tile_dram_capacity_GB=tile_dram_capacity_GB
 
         self.edge_die_dram_bw_GB=edge_die_dram_bw_GB
-        self.clk_freq_Ghz=clk_freq_Ghz
+        self.clk_freq_GHz=clk_freq_GHz
         self.noc_response_latency_ms=0
         self.dram_response_latency_ms=0
         self.route_XY='X'
 
         #simpy env and resource define @fangjh21.20230602
         self.env=env
-        self.link_resource=[]
-        self.dram_per_tile_resource=[]
-        #maybe in real system,there is one dram per die 
-        self.dram_per_die_resource=[]
-        self.edge_dram_resource=[]
-        self.__create_resource()
+        self.Analytical=Analytical
+        if not Analytical:
+            self.link_resource=[]
+            self.dram_per_tile_resource=[]
+            #maybe in real system,there is one dram per die 
+            self.dram_per_die_resource=[]
+            self.edge_dram_resource=[]
+            self.__create_resource()
     def wafer_info(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -195,23 +202,20 @@ class Wafer_Device():
     def noc_process(self,comm_size_MB,src_id,des_id,task_id=1,DEBUG_MODE=False):
         assert(src_id!=des_id)
         ListID=self.link_gen(src_id,des_id,DEBUG_MODE)
-        #if DEBUG_MODE:
-        #    print('Link_id_List:{}'.format(ListID))
         while(True):
-            #if DEBUG_MODE:
-            #    print("task {} start noc @ {:.3f} ms".format(task_id,self.env.now))
             for i in ListID:
-                #print(i)
-                with self.link_resource[i].request() as req: 
-                    yield req
+                if not self.Analytical:
+                    with self.link_resource[i].request() as req: 
+                        yield req
+                        if self.is_inter_link(i):
+                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_inter_noc_bw_GB)
+                        else:
+                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_intra_noc_bw_GB)
+                else:
                     if self.is_inter_link(i):
-                        #if DEBUG_MODE:
-                        #    print('task {} cross the inter noc, link_id={}'.format(task_id,i))
-                        yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_inter_noc_bw_GB)
+                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_inter_noc_bw_GB)
                     else:
-                        yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_intra_noc_bw_GB)
-            #if DEBUG_MODE:
-            #    print("task {} end noc @ {:.3f} ms".format(task_id,self.env.now))
+                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_intra_noc_bw_GB)
             break
     def edge_dram_write_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
         #TODO 
@@ -224,12 +228,15 @@ class Wafer_Device():
             #    print("task {} start dram wrtie  @ {:.3f} ms".format(task_id,self.envenv.now))
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,src_id,des_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))
-            dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
-            yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
+            if not self.Analytical:
+                dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
+                yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
+            else:
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.tile_dram_bw_GB)    
             #if DEBUG_MODE:
             #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
-    def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
+    def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=True):
         x1=self.tile_inter_shape[1]
         x0=self.tile_inter_shape[0]
         y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
@@ -239,22 +246,28 @@ class Wafer_Device():
             #if DEBUG_MODE:
             #    print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
             dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
-            print('int(des_id/ y)',int(des_id/ y))
-            print('x1',x1)
+            #print('int(des_id/ y)',int(des_id/ y))
+            #print('x1',x1)
             #print('int(des_id/ y)+x1',int(des_id/ y)+x1)
-            print('dram_index',dram_index)
-            print(len(self.edge_dram_resource))
-            yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=False))
+            #print('dram_index',dram_index)
+            #print(len(self.edge_dram_resource))
+            if not self.Analytical:
+                yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=False))
+            else:
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.edge_die_dram_bw_GB)            
             if des_id!=src_id:
                 yield self.env.process(self.noc_process(access_size_MB,des_id,src_id,task_id=task_id,DEBUG_MODE=DEBUG_MODE))
             #if DEBUG_MODE:
-            #print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
+            #    print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
             break
     def tile_dram_access_process(self,access_size_MB,src_id,task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         while(True):
             assert(self.with_3ddram_per_tile)
-            yield self.env.process(self.dram_per_tile_resource[src_id].access_process\
-                                   (access_size_MB,task_id=task_id,write=WRITE,DEBUG_MODE=DEBUG_MODE))
+            if not self.Analytical:
+                yield self.env.process(self.dram_per_tile_resource[src_id].access_process\
+                                    (access_size_MB,task_id=task_id,write=WRITE,DEBUG_MODE=DEBUG_MODE))
+            else:
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.tile_dram_bw_GB)
             break
     def tile_dram_group_access_process(self,access_size_MB,group_id:List[int],task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         for id in group_id:
@@ -397,7 +410,7 @@ class Wafer_Device():
 if __name__ == '__main__':
     Debug=True
     env = simpy.Environment()
-    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_3ddram_per_tile=True)
+    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_3ddram_per_tile=True,Analytical=True)
     '''
     env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))

@@ -6,767 +6,767 @@
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t1']",
   "parent_nodes":"[]",
-  "p_sgy":"[1, 2]",
-  "device":"[0, 96]"
+  "p_sgy":"[1, 4]",
+  "device":"[0, 32, 64, 96]"
  },
  "t1":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t2']",
   "parent_nodes":"['t0']",
-  "p_sgy":"[1, 2]",
-  "device":"[1, 97]"
+  "p_sgy":"[1, 4]",
+  "device":"[0, 32, 64, 96]"
  },
  "t2":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t3']",
   "parent_nodes":"['t1']",
-  "p_sgy":"[1, 2]",
-  "device":"[2, 98]"
+  "p_sgy":"[1, 4]",
+  "device":"[0, 32, 64, 96]"
  },
  "t3":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t4']",
   "parent_nodes":"['t2']",
-  "p_sgy":"[1, 2]",
-  "device":"[3, 99]"
+  "p_sgy":"[1, 4]",
+  "device":"[1, 33, 65, 97]"
  },
  "t4":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t5']",
   "parent_nodes":"['t3']",
-  "p_sgy":"[1, 2]",
-  "device":"[4, 100]"
+  "p_sgy":"[1, 4]",
+  "device":"[1, 33, 65, 97]"
  },
  "t5":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t6']",
   "parent_nodes":"['t4']",
-  "p_sgy":"[1, 2]",
-  "device":"[5, 101]"
+  "p_sgy":"[1, 4]",
+  "device":"[1, 33, 65, 97]"
  },
  "t6":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t7']",
   "parent_nodes":"['t5']",
-  "p_sgy":"[1, 2]",
-  "device":"[6, 102]"
+  "p_sgy":"[1, 4]",
+  "device":"[2, 34, 66, 98]"
  },
  "t7":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t8']",
   "parent_nodes":"['t6']",
-  "p_sgy":"[1, 2]",
-  "device":"[7, 103]"
+  "p_sgy":"[1, 4]",
+  "device":"[2, 34, 66, 98]"
  },
  "t8":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t9']",
   "parent_nodes":"['t7']",
-  "p_sgy":"[1, 2]",
-  "device":"[8, 104]"
+  "p_sgy":"[1, 4]",
+  "device":"[2, 34, 66, 98]"
  },
  "t9":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t10']",
   "parent_nodes":"['t8']",
-  "p_sgy":"[1, 2]",
-  "device":"[9, 105]"
+  "p_sgy":"[1, 4]",
+  "device":"[3, 35, 67, 99]"
  },
  "t10":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t11']",
   "parent_nodes":"['t9']",
-  "p_sgy":"[1, 2]",
-  "device":"[10, 106]"
+  "p_sgy":"[1, 4]",
+  "device":"[3, 35, 67, 99]"
  },
  "t11":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t12']",
   "parent_nodes":"['t10']",
-  "p_sgy":"[1, 2]",
-  "device":"[11, 107]"
+  "p_sgy":"[1, 4]",
+  "device":"[3, 35, 67, 99]"
  },
  "t12":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t13']",
   "parent_nodes":"['t11']",
-  "p_sgy":"[1, 2]",
-  "device":"[12, 108]"
+  "p_sgy":"[1, 4]",
+  "device":"[4, 36, 68, 100]"
  },
  "t13":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t14']",
   "parent_nodes":"['t12']",
-  "p_sgy":"[1, 2]",
-  "device":"[13, 109]"
+  "p_sgy":"[1, 4]",
+  "device":"[4, 36, 68, 100]"
  },
  "t14":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t15']",
   "parent_nodes":"['t13']",
-  "p_sgy":"[1, 2]",
-  "device":"[14, 110]"
+  "p_sgy":"[1, 4]",
+  "device":"[4, 36, 68, 100]"
  },
  "t15":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t16']",
   "parent_nodes":"['t14']",
-  "p_sgy":"[1, 2]",
-  "device":"[15, 111]"
+  "p_sgy":"[1, 4]",
+  "device":"[5, 37, 69, 101]"
  },
  "t16":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t17']",
   "parent_nodes":"['t15']",
-  "p_sgy":"[1, 2]",
-  "device":"[16, 112]"
+  "p_sgy":"[1, 4]",
+  "device":"[5, 37, 69, 101]"
  },
  "t17":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t18']",
   "parent_nodes":"['t16']",
-  "p_sgy":"[1, 2]",
-  "device":"[17, 113]"
+  "p_sgy":"[1, 4]",
+  "device":"[5, 37, 69, 101]"
  },
  "t18":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t19']",
   "parent_nodes":"['t17']",
-  "p_sgy":"[1, 2]",
-  "device":"[18, 114]"
+  "p_sgy":"[1, 4]",
+  "device":"[6, 38, 70, 102]"
  },
  "t19":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t20']",
   "parent_nodes":"['t18']",
-  "p_sgy":"[1, 2]",
-  "device":"[19, 115]"
+  "p_sgy":"[1, 4]",
+  "device":"[6, 38, 70, 102]"
  },
  "t20":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t21']",
   "parent_nodes":"['t19']",
-  "p_sgy":"[1, 2]",
-  "device":"[20, 116]"
+  "p_sgy":"[1, 4]",
+  "device":"[6, 38, 70, 102]"
  },
  "t21":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t22']",
   "parent_nodes":"['t20']",
-  "p_sgy":"[1, 2]",
-  "device":"[21, 117]"
+  "p_sgy":"[1, 4]",
+  "device":"[7, 39, 71, 103]"
  },
  "t22":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t23']",
   "parent_nodes":"['t21']",
-  "p_sgy":"[1, 2]",
-  "device":"[22, 118]"
+  "p_sgy":"[1, 4]",
+  "device":"[7, 39, 71, 103]"
  },
  "t23":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t24']",
   "parent_nodes":"['t22']",
-  "p_sgy":"[1, 2]",
-  "device":"[23, 119]"
+  "p_sgy":"[1, 4]",
+  "device":"[7, 39, 71, 103]"
  },
  "t24":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t25']",
   "parent_nodes":"['t23']",
-  "p_sgy":"[1, 2]",
-  "device":"[24, 120]"
+  "p_sgy":"[1, 4]",
+  "device":"[8, 40, 72, 104]"
  },
  "t25":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t26']",
   "parent_nodes":"['t24']",
-  "p_sgy":"[1, 2]",
-  "device":"[25, 121]"
+  "p_sgy":"[1, 4]",
+  "device":"[8, 40, 72, 104]"
  },
  "t26":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t27']",
   "parent_nodes":"['t25']",
-  "p_sgy":"[1, 2]",
-  "device":"[26, 122]"
+  "p_sgy":"[1, 4]",
+  "device":"[8, 40, 72, 104]"
  },
  "t27":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t28']",
   "parent_nodes":"['t26']",
-  "p_sgy":"[1, 2]",
-  "device":"[27, 123]"
+  "p_sgy":"[1, 4]",
+  "device":"[9, 41, 73, 105]"
  },
  "t28":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t29']",
   "parent_nodes":"['t27']",
-  "p_sgy":"[1, 2]",
-  "device":"[28, 124]"
+  "p_sgy":"[1, 4]",
+  "device":"[9, 41, 73, 105]"
  },
  "t29":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t30']",
   "parent_nodes":"['t28']",
-  "p_sgy":"[1, 2]",
-  "device":"[29, 125]"
+  "p_sgy":"[1, 4]",
+  "device":"[9, 41, 73, 105]"
  },
  "t30":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t31']",
   "parent_nodes":"['t29']",
-  "p_sgy":"[1, 2]",
-  "device":"[30, 126]"
+  "p_sgy":"[1, 4]",
+  "device":"[10, 42, 74, 106]"
  },
  "t31":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t32']",
   "parent_nodes":"['t30']",
-  "p_sgy":"[1, 2]",
-  "device":"[31, 127]"
+  "p_sgy":"[1, 4]",
+  "device":"[10, 42, 74, 106]"
  },
  "t32":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t33']",
   "parent_nodes":"['t31']",
-  "p_sgy":"[1, 1]",
-  "device":"[32]"
+  "p_sgy":"[1, 4]",
+  "device":"[10, 42, 74, 106]"
  },
  "t33":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t34']",
   "parent_nodes":"['t32']",
-  "p_sgy":"[1, 1]",
-  "device":"[33]"
+  "p_sgy":"[1, 4]",
+  "device":"[11, 43, 75, 107]"
  },
  "t34":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t35']",
   "parent_nodes":"['t33']",
-  "p_sgy":"[1, 1]",
-  "device":"[34]"
+  "p_sgy":"[1, 4]",
+  "device":"[11, 43, 75, 107]"
  },
  "t35":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t36']",
   "parent_nodes":"['t34']",
-  "p_sgy":"[1, 1]",
-  "device":"[35]"
+  "p_sgy":"[1, 4]",
+  "device":"[11, 43, 75, 107]"
  },
  "t36":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t37']",
   "parent_nodes":"['t35']",
-  "p_sgy":"[1, 1]",
-  "device":"[36]"
+  "p_sgy":"[1, 4]",
+  "device":"[12, 44, 76, 108]"
  },
  "t37":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t38']",
   "parent_nodes":"['t36']",
-  "p_sgy":"[1, 1]",
-  "device":"[37]"
+  "p_sgy":"[1, 4]",
+  "device":"[12, 44, 76, 108]"
  },
  "t38":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t39']",
   "parent_nodes":"['t37']",
-  "p_sgy":"[1, 1]",
-  "device":"[38]"
+  "p_sgy":"[1, 4]",
+  "device":"[12, 44, 76, 108]"
  },
  "t39":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t40']",
   "parent_nodes":"['t38']",
-  "p_sgy":"[1, 1]",
-  "device":"[39]"
+  "p_sgy":"[1, 4]",
+  "device":"[13, 45, 77, 109]"
  },
  "t40":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t41']",
   "parent_nodes":"['t39']",
-  "p_sgy":"[1, 1]",
-  "device":"[40]"
+  "p_sgy":"[1, 4]",
+  "device":"[13, 45, 77, 109]"
  },
  "t41":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t42']",
   "parent_nodes":"['t40']",
-  "p_sgy":"[1, 1]",
-  "device":"[41]"
+  "p_sgy":"[1, 4]",
+  "device":"[13, 45, 77, 109]"
  },
  "t42":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t43']",
   "parent_nodes":"['t41']",
-  "p_sgy":"[1, 1]",
-  "device":"[42]"
+  "p_sgy":"[1, 4]",
+  "device":"[14, 46, 78, 110]"
  },
  "t43":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t44']",
   "parent_nodes":"['t42']",
-  "p_sgy":"[1, 1]",
-  "device":"[43]"
+  "p_sgy":"[1, 4]",
+  "device":"[14, 46, 78, 110]"
  },
  "t44":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t45']",
   "parent_nodes":"['t43']",
-  "p_sgy":"[1, 1]",
-  "device":"[44]"
+  "p_sgy":"[1, 4]",
+  "device":"[14, 46, 78, 110]"
  },
  "t45":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t46']",
   "parent_nodes":"['t44']",
-  "p_sgy":"[1, 1]",
-  "device":"[45]"
+  "p_sgy":"[1, 4]",
+  "device":"[15, 47, 79, 111]"
  },
  "t46":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t47']",
   "parent_nodes":"['t45']",
-  "p_sgy":"[1, 1]",
-  "device":"[46]"
+  "p_sgy":"[1, 4]",
+  "device":"[15, 47, 79, 111]"
  },
  "t47":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t48']",
   "parent_nodes":"['t46']",
-  "p_sgy":"[1, 1]",
-  "device":"[47]"
+  "p_sgy":"[1, 4]",
+  "device":"[15, 47, 79, 111]"
  },
  "t48":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t49']",
   "parent_nodes":"['t47']",
-  "p_sgy":"[1, 1]",
-  "device":"[48]"
+  "p_sgy":"[1, 4]",
+  "device":"[16, 48, 80, 112]"
  },
  "t49":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t50']",
   "parent_nodes":"['t48']",
-  "p_sgy":"[1, 1]",
-  "device":"[49]"
+  "p_sgy":"[1, 4]",
+  "device":"[16, 48, 80, 112]"
  },
  "t50":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t51']",
   "parent_nodes":"['t49']",
-  "p_sgy":"[1, 1]",
-  "device":"[50]"
+  "p_sgy":"[1, 4]",
+  "device":"[16, 48, 80, 112]"
  },
  "t51":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t52']",
   "parent_nodes":"['t50']",
-  "p_sgy":"[1, 1]",
-  "device":"[51]"
+  "p_sgy":"[1, 4]",
+  "device":"[17, 49, 81, 113]"
  },
  "t52":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t53']",
   "parent_nodes":"['t51']",
-  "p_sgy":"[1, 1]",
-  "device":"[52]"
+  "p_sgy":"[1, 4]",
+  "device":"[17, 49, 81, 113]"
  },
  "t53":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t54']",
   "parent_nodes":"['t52']",
-  "p_sgy":"[1, 1]",
-  "device":"[53]"
+  "p_sgy":"[1, 4]",
+  "device":"[17, 49, 81, 113]"
  },
  "t54":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t55']",
   "parent_nodes":"['t53']",
-  "p_sgy":"[1, 1]",
-  "device":"[54]"
+  "p_sgy":"[1, 4]",
+  "device":"[18, 50, 82, 114]"
  },
  "t55":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t56']",
   "parent_nodes":"['t54']",
-  "p_sgy":"[1, 1]",
-  "device":"[55]"
+  "p_sgy":"[1, 4]",
+  "device":"[18, 50, 82, 114]"
  },
  "t56":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t57']",
   "parent_nodes":"['t55']",
-  "p_sgy":"[1, 1]",
-  "device":"[56]"
+  "p_sgy":"[1, 4]",
+  "device":"[18, 50, 82, 114]"
  },
  "t57":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t58']",
   "parent_nodes":"['t56']",
-  "p_sgy":"[1, 1]",
-  "device":"[57]"
+  "p_sgy":"[1, 4]",
+  "device":"[19, 51, 83, 115]"
  },
  "t58":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t59']",
   "parent_nodes":"['t57']",
-  "p_sgy":"[1, 1]",
-  "device":"[58]"
+  "p_sgy":"[1, 4]",
+  "device":"[19, 51, 83, 115]"
  },
  "t59":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t60']",
   "parent_nodes":"['t58']",
-  "p_sgy":"[1, 1]",
-  "device":"[59]"
+  "p_sgy":"[1, 4]",
+  "device":"[19, 51, 83, 115]"
  },
  "t60":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t61']",
   "parent_nodes":"['t59']",
-  "p_sgy":"[1, 1]",
-  "device":"[60]"
+  "p_sgy":"[1, 4]",
+  "device":"[20, 52, 84, 116]"
  },
  "t61":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t62']",
   "parent_nodes":"['t60']",
-  "p_sgy":"[1, 1]",
-  "device":"[61]"
+  "p_sgy":"[1, 4]",
+  "device":"[20, 52, 84, 116]"
  },
  "t62":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t63']",
   "parent_nodes":"['t61']",
-  "p_sgy":"[1, 1]",
-  "device":"[62]"
+  "p_sgy":"[1, 4]",
+  "device":"[20, 52, 84, 116]"
  },
  "t63":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t64']",
   "parent_nodes":"['t62']",
-  "p_sgy":"[1, 1]",
-  "device":"[63]"
+  "p_sgy":"[1, 4]",
+  "device":"[21, 53, 85, 117]"
  },
  "t64":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t65']",
   "parent_nodes":"['t63']",
-  "p_sgy":"[1, 1]",
-  "device":"[64]"
+  "p_sgy":"[1, 4]",
+  "device":"[21, 53, 85, 117]"
  },
  "t65":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t66']",
   "parent_nodes":"['t64']",
-  "p_sgy":"[1, 1]",
-  "device":"[65]"
+  "p_sgy":"[1, 4]",
+  "device":"[21, 53, 85, 117]"
  },
  "t66":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t67']",
   "parent_nodes":"['t65']",
-  "p_sgy":"[1, 1]",
-  "device":"[66]"
+  "p_sgy":"[1, 4]",
+  "device":"[22, 54, 86, 118]"
  },
  "t67":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t68']",
   "parent_nodes":"['t66']",
-  "p_sgy":"[1, 1]",
-  "device":"[67]"
+  "p_sgy":"[1, 4]",
+  "device":"[22, 54, 86, 118]"
  },
  "t68":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t69']",
   "parent_nodes":"['t67']",
-  "p_sgy":"[1, 1]",
-  "device":"[68]"
+  "p_sgy":"[1, 4]",
+  "device":"[22, 54, 86, 118]"
  },
  "t69":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t70']",
   "parent_nodes":"['t68']",
-  "p_sgy":"[1, 1]",
-  "device":"[69]"
+  "p_sgy":"[1, 4]",
+  "device":"[23, 55, 87, 119]"
  },
  "t70":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t71']",
   "parent_nodes":"['t69']",
-  "p_sgy":"[1, 1]",
-  "device":"[70]"
+  "p_sgy":"[1, 4]",
+  "device":"[23, 55, 87, 119]"
  },
  "t71":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t72']",
   "parent_nodes":"['t70']",
-  "p_sgy":"[1, 1]",
-  "device":"[71]"
+  "p_sgy":"[1, 4]",
+  "device":"[23, 55, 87, 119]"
  },
  "t72":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t73']",
   "parent_nodes":"['t71']",
-  "p_sgy":"[1, 1]",
-  "device":"[72]"
+  "p_sgy":"[1, 4]",
+  "device":"[24, 56, 88, 120]"
  },
  "t73":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t74']",
   "parent_nodes":"['t72']",
-  "p_sgy":"[1, 1]",
-  "device":"[73]"
+  "p_sgy":"[1, 4]",
+  "device":"[24, 56, 88, 120]"
  },
  "t74":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t75']",
   "parent_nodes":"['t73']",
-  "p_sgy":"[1, 1]",
-  "device":"[74]"
+  "p_sgy":"[1, 4]",
+  "device":"[24, 56, 88, 120]"
  },
  "t75":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t76']",
   "parent_nodes":"['t74']",
-  "p_sgy":"[1, 1]",
-  "device":"[75]"
+  "p_sgy":"[1, 4]",
+  "device":"[25, 57, 89, 121]"
  },
  "t76":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t77']",
   "parent_nodes":"['t75']",
-  "p_sgy":"[1, 1]",
-  "device":"[76]"
+  "p_sgy":"[1, 4]",
+  "device":"[25, 57, 89, 121]"
  },
  "t77":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t78']",
   "parent_nodes":"['t76']",
-  "p_sgy":"[1, 1]",
-  "device":"[77]"
+  "p_sgy":"[1, 4]",
+  "device":"[25, 57, 89, 121]"
  },
  "t78":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t79']",
   "parent_nodes":"['t77']",
-  "p_sgy":"[1, 1]",
-  "device":"[78]"
+  "p_sgy":"[1, 4]",
+  "device":"[26, 58, 90, 122]"
  },
  "t79":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t80']",
   "parent_nodes":"['t78']",
-  "p_sgy":"[1, 1]",
-  "device":"[79]"
+  "p_sgy":"[1, 4]",
+  "device":"[26, 58, 90, 122]"
  },
  "t80":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t81']",
   "parent_nodes":"['t79']",
-  "p_sgy":"[1, 1]",
-  "device":"[80]"
+  "p_sgy":"[1, 4]",
+  "device":"[26, 58, 90, 122]"
  },
  "t81":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t82']",
   "parent_nodes":"['t80']",
-  "p_sgy":"[1, 1]",
-  "device":"[81]"
+  "p_sgy":"[1, 4]",
+  "device":"[27, 59, 91, 123]"
  },
  "t82":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t83']",
   "parent_nodes":"['t81']",
-  "p_sgy":"[1, 1]",
-  "device":"[82]"
+  "p_sgy":"[1, 4]",
+  "device":"[27, 59, 91, 123]"
  },
  "t83":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t84']",
   "parent_nodes":"['t82']",
-  "p_sgy":"[1, 1]",
-  "device":"[83]"
+  "p_sgy":"[1, 4]",
+  "device":"[27, 59, 91, 123]"
  },
  "t84":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t85']",
   "parent_nodes":"['t83']",
-  "p_sgy":"[1, 1]",
-  "device":"[84]"
+  "p_sgy":"[1, 4]",
+  "device":"[28, 60, 92, 124]"
  },
  "t85":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t86']",
   "parent_nodes":"['t84']",
-  "p_sgy":"[1, 1]",
-  "device":"[85]"
+  "p_sgy":"[1, 4]",
+  "device":"[28, 60, 92, 124]"
  },
  "t86":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t87']",
   "parent_nodes":"['t85']",
-  "p_sgy":"[1, 1]",
-  "device":"[86]"
+  "p_sgy":"[1, 4]",
+  "device":"[28, 60, 92, 124]"
  },
  "t87":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t88']",
   "parent_nodes":"['t86']",
-  "p_sgy":"[1, 1]",
-  "device":"[87]"
+  "p_sgy":"[1, 4]",
+  "device":"[29, 61, 93, 125]"
  },
  "t88":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t89']",
   "parent_nodes":"['t87']",
-  "p_sgy":"[1, 1]",
-  "device":"[88]"
+  "p_sgy":"[1, 4]",
+  "device":"[29, 61, 93, 125]"
  },
  "t89":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t90']",
   "parent_nodes":"['t88']",
-  "p_sgy":"[1, 1]",
-  "device":"[89]"
+  "p_sgy":"[1, 4]",
+  "device":"[29, 61, 93, 125]"
  },
  "t90":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t91']",
   "parent_nodes":"['t89']",
-  "p_sgy":"[1, 1]",
-  "device":"[90]"
+  "p_sgy":"[1, 4]",
+  "device":"[30, 62, 94, 126]"
  },
  "t91":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t92']",
   "parent_nodes":"['t90']",
-  "p_sgy":"[1, 1]",
-  "device":"[91]"
+  "p_sgy":"[1, 4]",
+  "device":"[30, 62, 94, 126]"
  },
  "t92":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t93']",
   "parent_nodes":"['t91']",
-  "p_sgy":"[1, 1]",
-  "device":"[92]"
+  "p_sgy":"[1, 4]",
+  "device":"[30, 62, 94, 126]"
  },
  "t93":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t94']",
   "parent_nodes":"['t92']",
-  "p_sgy":"[1, 1]",
-  "device":"[93]"
+  "p_sgy":"[1, 4]",
+  "device":"[31, 63, 95, 127]"
  },
  "t94":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"['t95']",
   "parent_nodes":"['t93']",
-  "p_sgy":"[1, 1]",
-  "device":"[94]"
+  "p_sgy":"[1, 4]",
+  "device":"[31, 63, 95, 127]"
  },
  "t95":{
   "type":"Transformer",
   "param_dim":"[1564, 2048, 12288, 96]",
   "child_nodes":"[]",
   "parent_nodes":"['t94']",
-  "p_sgy":"[1, 1]",
-  "device":"[95]"
+  "p_sgy":"[1, 4]",
+  "device":"[31, 63, 95, 127]"
  }
 }

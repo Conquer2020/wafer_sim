@@ -16,8 +16,9 @@ if __name__ == '__main__':
         'tile_dram_bw_GB':12288/16/8,
         'tile_dram_capacity_GB':6/16,
         'edge_die_dram_bw_GB':512,
-        'clk_freq_Ghz':1,
-        'with_3ddram_per_tile':True
+        'clk_freq_GHz':1,
+        'with_3ddram_per_tile':True,
+        'Analytical':True
         }  
     tile_config={
         'tile_name':'tx8',
@@ -26,7 +27,8 @@ if __name__ == '__main__':
         'freq_GHz':1,
         'with_dram':True,
         'opt':OPTIMIZER.ADAM,
-        'ZeRO':ZeRO_strategy.ZeRO_3 
+        'ZeRO':ZeRO_strategy.ZeRO_3 ,
+        'Analytical':True
         }  
     
     #1.define simpy environment
@@ -43,7 +45,8 @@ if __name__ == '__main__':
         tile_dram_bw_GB=wafer_config['tile_dram_bw_GB'],
         tile_dram_capacity_GB=wafer_config['tile_dram_capacity_GB'],
         edge_die_dram_bw_GB=wafer_config['edge_die_dram_bw_GB'],
-        clk_freq_Ghz=wafer_config['clk_freq_Ghz'],
+        clk_freq_GHz=wafer_config['clk_freq_GHz'],
+        Analytical=wafer_config['Analytical'],
         )
     #read ml compute graph from json file or define ml compute graph by yourself
     gpt_gp=CompGraph.gread(path='mljson',name='gpt-3.json')
@@ -64,14 +67,15 @@ if __name__ == '__main__':
   
     #5.simpy run  
     ONE_WEEK_MS=24*60*60*7*1000
-    scale_sim_time=ONE_WEEK_MS*1000
+    scale_sim_time=ONE_WEEK_MS*10
     gpt_pipe_sim.simpy_run(until=scale_sim_time)
 
     #6. log and info output
     gpt_pipe_sim.pipeline_status(clear=False)
 
     #res_type='edge_dram' or '3ddram' or 'noc' or 'all'
-    #wd.resource_visualize(res_type='edge_dram',clear=True)
+    if not wafer_config['Analytical']:
+        wd.resource_visualize(res_type='edge_dram',clear=True)
 
 
 
