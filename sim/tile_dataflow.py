@@ -127,11 +127,10 @@ class Tile():# for compute process
         this is the tile compute process
         the input is macs(M) or [M,N,K] parameter
         '''
-        exetime=0.0
-        if type(macs_m)==list:
-            exetime=self.compute_cycles(macs_m)/self.freq/1000/1000 #ns to ms
+        if isinstance(macs_m, list):
+            exetime = self.compute_cycles(macs_m) / self.freq / 1e6  # ns to ms
         else:
-            exetime=2*macs_m/self.TOPS/1000 # us to ms
+            exetime = 2 * macs_m / self.TOPS / 1e3  # us to ms
         if not self.Analytical:
             with self.cp_worker.request() as req:
                     yield req
@@ -142,14 +141,12 @@ class Tile():# for compute process
         '''
         this is the tile communication process
         '''
-        comm_mbytes=0
-        #print(comm_op)
+        comm_mbytes=comm_op.size*self.comm_bytes
         #here if communication can not overlap by compute time,the 'cm_worker' should to be 'cp_worker'
         if not self.Analytical:
             with (self.cm_worker.request() if overlap else self.cp_worker.request()) as req:
                     yield req       
                     for gp in comm_op.device_group:
-                        comm_mbytes=comm_op.size*self.comm_bytes
                         if comm_op.type==COMM.ALL_REDUCE:
                             yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
                         elif comm_op.type==COMM.ALL_2_ALL:
@@ -160,7 +157,6 @@ class Tile():# for compute process
                             pass
         else:
             for gp in comm_op.device_group:
-                comm_mbytes=comm_op.size*self.comm_bytes
                 if comm_op.type==COMM.ALL_REDUCE:
                     yield wd1.env.process(wd1.ALL_2_ALL_process(comm_mbytes,gp,traffic_tpye))
                 elif comm_op.type==COMM.ALL_2_ALL:

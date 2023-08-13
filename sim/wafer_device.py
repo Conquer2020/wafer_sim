@@ -138,28 +138,23 @@ class Wafer_Device():
     def route_gen(self,src_id,des_id,DEBUG_MODE=True):
         x=self.tile_intra_shape[0]*self.tile_inter_shape[0]
         y=self.tile_inter_shape[1]*self.tile_intra_shape[1]
-        assert (src_id!=des_id)
-        assert (0<=des_id and des_id<(x*y))
-        list=[src_id]
+        assert src_id != des_id, "Source and destination IDs must be different"
+        assert 0 <= des_id < (x * y), "Destination ID out of range"
+        route_list =[src_id]
         if self.route_XY=='X':
             while(src_id!=des_id):
                 if((src_id % y) >(des_id % y)):
                     src_id-=1
-                    list.append(src_id)
                 elif ((src_id % y) <(des_id % y)):
                     src_id+=1
-                    list.append(src_id)
                 else:
-                    if(src_id<des_id):
-                        src_id+=y
-                    else:
-                        src_id-=y
-                    list.append(src_id)
+                    src_id += y if src_id < des_id else -y
+                route_list .append(src_id)
         else:
             pass
         #if DEBUG_MODE:
         #    print('Router_List:{}'.format(list))
-        return list
+        return route_list 
     def link_gen(self,src_id,des_id,DEBUG_MODE=False):
         x0=self.tile_intra_shape[0]
         x1=self.tile_inter_shape[0]
@@ -237,8 +232,8 @@ class Wafer_Device():
             #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
     def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=True):
-        x1=self.tile_inter_shape[1]
-        x0=self.tile_inter_shape[0]
+        x1=self.tile_inter_shape[0]
+        x0=self.tile_intra_shape[0]
         y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
         row_line=int(src_id /y)+1
         des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
@@ -246,11 +241,13 @@ class Wafer_Device():
             #if DEBUG_MODE:
             #    print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
             dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
-            #print('int(des_id/ y)',int(des_id/ y))
-            #print('x1',x1)
-            #print('int(des_id/ y)+x1',int(des_id/ y)+x1)
-            #print('dram_index',dram_index)
-            #print(len(self.edge_dram_resource))
+            '''
+            print('int(des_id/ y)',int(des_id/ y))
+            print('x1',x1)
+            print('int(des_id/ y)+x1',int(des_id/ y)+x1)
+            print('dram_index',dram_index)
+            print(len(self.edge_dram_resource))
+            '''
             if not self.Analytical:
                 yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=False))
             else:

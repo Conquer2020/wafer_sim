@@ -7,7 +7,7 @@ from ML import *
 import simpy
 if __name__ == '__main__':
     #0 TODO set config info by configparser
-    Analytical=False
+    Analytical=True
     wafer_config={
         'wafer_name':'test',
         'tile_inter_shape':[4,4],#scale out dimension
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         noc=wd,
         pipe_type=pipe_strategy.Megatron1F1B
         )
-    gpt_pipe_sim.pipeline_set(boost_mode=False)
+    gpt_pipe_sim.pipeline_set(boost_mode=True)
   
     #5.simpy run  
     ONE_WEEK_MS=24*60*60*7*1000
@@ -75,8 +75,8 @@ if __name__ == '__main__':
     gpt_pipe_sim.pipeline_status(clear=False)
 
     #res_type='edge_dram' or '3ddram' or 'noc' or 'all'
-    if not wafer_config['Analytical']:
-        wd.resource_visualize(res_type='edge_dram',clear=True)
+    #if not wafer_config['Analytical']:
+    #    wd.resource_visualize(res_type='edge_dram',clear=True)
 
 
 
