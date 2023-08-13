@@ -7,7 +7,7 @@ from ML import *
 import simpy
 if __name__ == '__main__':
     #0 TODO set config info by configparser
-    Analytical=True
+    Analytical=False
     wafer_config={
         'wafer_name':'test',
         'tile_inter_shape':[4,4],#scale out dimension
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     #5.simpy run  
     ONE_WEEK_MS=24*60*60*7*1000
     scale_sim_time=ONE_WEEK_MS*10
-    gpt_pipe_sim.simpy_run(until=scale_sim_time)
+    gpt_pipe_sim.simpy_run(until_ms=scale_sim_time)
 
     #6. log and info output
     gpt_pipe_sim.pipeline_status(clear=False)

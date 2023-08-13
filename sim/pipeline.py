@@ -116,7 +116,7 @@ class Stages():
         self.__set_stage()
 
         self.boost_mode=False
-        self.boost_times=4
+        self.boost_times=1  if self.stages[0].tile.Analytical else 6
 
 
     def __set_stage(self):
@@ -184,7 +184,7 @@ class Stages():
         print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
         print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
         self.boost_mode=boost_mode
-        self.boost_times=4
+        #self.boost_times=1 
         if self.pipe_type==pipe_strategy.Megatron1F1B:
             Megatron1F1B()
         elif self.pipe_type==pipe_strategy.GPipe:
@@ -193,11 +193,11 @@ class Stages():
             Cerebras()
 
 
-    def simpy_run(self,until=2000):
+    def simpy_run(self,until_ms=2000):
         print('----------simpy_run----------')
         sim_start_t=time.time()
         print('start simpy simulation...')
-        self.env.run(until=until)
+        self.env.run(until=until_ms)
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
     def pipeline_status(self,path='./status/pipeline/',draw_pipe=True,write_log=False,clear=True):
