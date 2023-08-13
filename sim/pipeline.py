@@ -208,13 +208,12 @@ class Stages():
         title=str(self.pipe_type)
         for stage in self.stages:
             all_trace.append(stage.trace)
-
-        #add boosted time
         pipe_endtime=all_trace[0][-1][1]
-        unit_time_1F1B=all_trace[-1][1][1]-all_trace[-1][0][0]
-        #print(unit_time_1F1B)
         if self.boost_mode:
-            pipe_endtime=pipe_endtime+(self.pipe_times-self.boost_times)*unit_time_1F1B 
+            #add boosted time
+            max_unit_time_1F1B=max_ave_1F1B_time(all_trace)#all_trace[-1][1][1]-all_trace[-1][0][0]#
+            #print(max_unit_time_1F1B)
+            pipe_endtime=pipe_endtime+(self.pipe_times-self.boost_times)*max_unit_time_1F1B 
         endtime_days=pipe_endtime/1000/60/60/24
         endtime_secs=pipe_endtime/1000
         if not os.path.exists(path):

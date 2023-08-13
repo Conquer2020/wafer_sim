@@ -7,9 +7,10 @@ from ML import *
 import simpy
 if __name__ == '__main__':
     #0 TODO set config info by configparser
+    Analytical=True
     wafer_config={
         'wafer_name':'test',
-        'tile_inter_shape':[2,4],#scale out dimension
+        'tile_inter_shape':[4,4],#scale out dimension
         'tile_intra_shape':[4,4],
         'tile_intra_noc_bw_GB':1024,
         'tile_inter_noc_bw_GB':1024*0.6,
@@ -18,7 +19,7 @@ if __name__ == '__main__':
         'edge_die_dram_bw_GB':512,
         'clk_freq_GHz':1,
         'with_3ddram_per_tile':True,
-        'Analytical':True
+        'Analytical':Analytical
         }  
     tile_config={
         'tile_name':'tx8',
@@ -28,7 +29,7 @@ if __name__ == '__main__':
         'with_dram':True,
         'opt':OPTIMIZER.ADAM,
         'ZeRO':ZeRO_strategy.ZeRO_3 ,
-        'Analytical':True
+        'Analytical':Analytical
         }  
     
     #1.define simpy environment

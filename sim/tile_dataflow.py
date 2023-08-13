@@ -54,7 +54,7 @@ class Tile():# for compute process
         #simpy env
         self.env=env
         self.Analytical=Analytical
-        if self.Analytical:
+        if not self.Analytical:
             self.cp_worker= simpy.Resource(env, capacity=1)
             self.cm_worker= simpy.Resource(env, capacity=1)
         #mapping op

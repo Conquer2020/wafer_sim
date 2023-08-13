@@ -88,8 +88,8 @@ class Wafer_Device():
     def wafer_info(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            print('----------wafer_info----------')
-            print('{}:{}x{},{}x{}'.format(self.wafer_name,self.tile_inter_shape[0],self.tile_inter_shape[1],self.tile_intra_shape[0],self.tile_intra_shape[1]))
+            print('----------wafer-scale infomation----------')
+            print('2D mesh {}:{}x{},{}x{}'.format(self.wafer_name,self.tile_inter_shape[0],self.tile_inter_shape[1],self.tile_intra_shape[0],self.tile_intra_shape[1]))
             return func(self, *args, **kwargs)
         return wrapper
     def device_list(self):

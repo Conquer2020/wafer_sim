@@ -87,6 +87,22 @@ def data_average(data,ave_size=1000):
     #data type[[start_time,end_time,max_resource],...]
     assert(ave_size>1)
     pass
+def max_ave_1F1B_time(trace):
+    max_1F1B_time=0
+    tp_time=0
+    stage_num=len(trace)
+    fb_num=len(trace[0])
+    #print(stage_num,fb_num)
+    for i in range(stage_num):
+        tp_time=0
+        for j in range(fb_num):
+            tp_time+=(trace[i][j][1]-trace[i][j][0])
+        tp_time/=(fb_num /2)
+        #print(i,tp_time)
+        if max_1F1B_time< tp_time:
+            max_1F1B_time=tp_time
+            #print('max_index=',i)
+    return max_1F1B_time
 
 def visualize_resource(data:List,path,name,clear_redundance=True,max_resource=256,ave_unit_ms=1):
     #[(req_flag,req_time,len_q),(res_flag,res_time,len_q)]
