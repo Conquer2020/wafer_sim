@@ -10,7 +10,7 @@ import math
 def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Device):
     tiles_id=wd.device_list() 
     STG_NUM=32
-    DATA_PARALLELISM=1
+    DATA_PARALLELISM=2
     tiles=[]
     for i in range(STG_NUM):
         #print(tiles_id[i::STG_NUM])  
