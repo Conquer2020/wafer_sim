@@ -86,7 +86,7 @@ class Stages():
             self.env.process(self.bd()) 
         self.env.process(self.syn())
 env=simpy.Environment()
-ss=Stages(env,stage_num=10)
+ss=Stages(env,stage_num=10,times=5)
 ss.run()
 env.run(until=10000)
 all_trace=[]
