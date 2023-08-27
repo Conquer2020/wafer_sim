@@ -46,7 +46,7 @@ def str2strlist(string):
     return ls
 
 def split_comm_group(Group_Id,parall_dims):
-    '''
+    ''' 
     Here is an example :
     suppose Group_Id=[0,1,2,3,...,15],len=16
     1.if parall_dims=[16,1,1,1],group=[[0:15],[],[],[]]

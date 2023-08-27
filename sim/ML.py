@@ -7,7 +7,7 @@ OPTIMIZER=Enum('OPTIMIZER',('NONE','SGD','ADAM'))
 BYTES={'NONE':0,'INT8':1,'FP16':2,'TF32':2.375,'FP32':4}
 
 dataflow=Enum('dataflow',('IS','WS','OS'))
-comp_model=Enum('comp_model',('simple','SCALE_SIM'))
+comp_model=Enum('comp_model',('simple','SCALE_SIM','abrupt_curve'))
 
 store_strategy=Enum('store_strategy',('cache','weight','ACT','ACT_weight','none'))
 recompute_strategy=Enum('recompute_strategy',('none','half','all'))

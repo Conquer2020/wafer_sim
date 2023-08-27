@@ -115,7 +115,20 @@ class Tile():# for compute process
             return (2*R+C+T-2)*math.ceil(sr/R)*math.ceil(sc/C)
         elif self.cp_model==comp_model.simple:
             return T*math.ceil(SR/(R*PR))*math.ceil(SC/(C*SC))
-        else :
+        elif self.cp_model==comp_model.abrupt_curve:
+            cost=T*math.ceil(SR/(R*PR))*math.ceil(SC/(C*SC))
+            if SR%(PR*R)==0 and SC%(PC*C)==0:
+                cost=1.0*cost
+            elif SR%(PR*R)==0 :
+                cost=1.2*cost
+            elif SR%R==0 and SC%C==0:
+                cost=1.8*cost
+            elif SR%R==0 :
+                cost=2.0*cost
+            else:
+                cost=2.5*cost
+            return int(cost)
+        else:
             raise NotImplementedError
     #TODO 
     #each tile group may process one subgraph rather than one op
