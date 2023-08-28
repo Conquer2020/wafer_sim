@@ -149,7 +149,7 @@ class Stages():
                 yield self.env.process(self.stages[i].stage_backward_process(self.b_q[i],self.b_q[i+1],self.env,self.noc))
             #TODO bug  
             #print('finish backward @ {:.3f} ms'.format(self.env.now))
-        with self.f_q[len(self.stages)].get() as get:
+        with self.f_q[len(self.stages  )].get() as get:
             a=yield get
             yield self.b_q[len(self.stages)].put(a)
             yield self.env.process(pro())
