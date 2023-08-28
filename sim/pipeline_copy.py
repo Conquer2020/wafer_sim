@@ -53,7 +53,7 @@ class Stage():
                 yield req
                 t_last=self.env.now
                 if c_type==ML_STATE.FORWARD:
-                    yield self.env.process(self.tile.execute_forward_process())
+                    yield self.env.process(self.tile.forward_process())
                     self.trace.append((t_last,self.env.now,c_type))    
                     self.res_fd_cnt+=1
                     if self.next_core_id!=None and self.next_core_id!=[]:
@@ -61,7 +61,7 @@ class Stage():
                         pks=Packet('',self.o_shape)
                         yield self.env.process(noc.STAGE_PASS_process(pks,self.cur_core_id,self.next_core_id,task_info))
                 elif c_type==ML_STATE.BACKWARD:
-                    yield self.env.process(self.tile.execute_backward_process())
+                    yield self.env.process(self.tile.backward_process())
                     self.trace.append((t_last,self.env.now,c_type))    
                     self.res_fd_cnt-=1
                     if self.next_core_id!=None and self.next_core_id!=[]:
@@ -69,7 +69,7 @@ class Stage():
                         pks=Packet('',self.i_shape)
                         yield self.env.process(noc.STAGE_PASS_process(pks,self.cur_core_id,self.next_core_id,task_info))
                 else:
-                    yield self.env.timeout(1000000)  
+                    yield self.env.process(self.tile.update_process())
                     self.trace.append((t_last,self.env.now,c_type))      
 class Pipeline():
     def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],\

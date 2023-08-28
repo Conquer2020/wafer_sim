@@ -280,7 +280,7 @@ class Tile():# for compute process
         '''
         return  self.map_ana
     
-    def execute_forward_process(self):
+    def forward_process(self):
         def analysis_template_event(param=[None,None,None,None,None,None,None,None,None,None,None]):
             assert(len(param)==11)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
@@ -477,12 +477,12 @@ class Tile():# for compute process
             #please notice that the bytes number is considered in execute_template_event function
             events,comm_event=analysis_template_event(param)
             execute_event=[self.env.process(event) for event in events]
-            #print("execute_forward_process start @ {:.3f} ms".format(self.env.now))
+            #print("forward_process start @ {:.3f} ms".format(self.env.now))
             yield simpy.AllOf(self.env,execute_event)
             yield self.env.process(comm_event)
-            #print("execute_forward_process end @ {:.3f} ms".format(self.env.now))
+            #print("forward_process end @ {:.3f} ms".format(self.env.now))
 
-    def execute_backward_process(self):
+    def backward_process(self):
         def analysis_template_recompute_event(param=[None,None,None,None,None,None,None,None,None]):
             assert(len(param)==9)
             #param=[wt_load,act_fetch,wt_load,act_fetch,Zero_comm,comp,intra_act_store,out_act_store,intra_act_store,out_act_store]
@@ -919,17 +919,17 @@ class Tile():# for compute process
             events=analysis_template_event(update_param)
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
-    '''
-    def execute_forward_process(self):
-        #print("execute_forward_process start @ {:.3f} ms".format(self.env.now))
+    
+    def forward_process(self):
+        #print("forward_process start @ {:.3f} ms".format(self.env.now))
         print(self.forward_event)
         for events in self.forward_event:
             execute_event=[self.env.process(event) for event in events]
-            print("execute_forward_process start @ {:.3f} ms".format(self.env.now))
+            print("forward_process start @ {:.3f} ms".format(self.env.now))
             yield simpy.AllOf(self.env,execute_event)
-            print("execute_forward_process end @ {:.3f} ms".format(self.env.now))
-        #print("execute_forward_process end @ {:.3f} ms".format(self.env.now))
-    def execute_backward_process(self):
+            print("forward_process end @ {:.3f} ms".format(self.env.now))
+        #print("forward_process end @ {:.3f} ms".format(self.env.now))
+    def backward_process(self):
         for index,_ in enumerate(self.dloss_event):
             if self.recompute_event[index]!=None:
                 execute_event=[self.env.process(event) for event in self.recompute_event[index]]
@@ -938,11 +938,11 @@ class Tile():# for compute process
             yield simpy.AllOf(self.env,execute_event)
             execute_event=[self.env.process(event) for event in self.dW_event[index]]
             yield simpy.AllOf(self.env,execute_event)
-    def execute_update_process(self):
+    def update_process(self):
         for events in self.update_event:
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
-    '''
+    
 
     
 
