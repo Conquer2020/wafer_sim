@@ -33,7 +33,6 @@ class Stage():
         self.next_core_id=next_core_id
         self.stage_info=[]
         self.map_ana=[]
-
         #simpy env 
         self.env=env
         self.res=simpy.PriorityResource(env, capacity=1)
@@ -41,21 +40,17 @@ class Stage():
         self.res_fd_cnt=0
         self.prio=1
         self.trace=[]
-        
         self.__class__.__stage_id+=1
-        
     def init_info(self,micro_batch):
         for op in self.op_list:
             op.param_dim[0]=micro_batch
             op.update()
         self.i_shape=self.op_list[0].i_shape
         self.o_shape=self.op_list[-1].o_shape
-
-    def update_state(self,noc:wd,c_type=ML_STATE.FORWARD,wait=1e-15,):
+    def up_state(self,noc:wd,c_type=ML_STATE.FORWARD,wait=1e-15):
         #yield self.env.timeout(wait)
         with self.res.request(priority=self.prio) as req:
                 yield req
-                #yield self.env.timeout(self.time_out[c_type])
                 t_last=self.env.now
                 if c_type==ML_STATE.FORWARD:
                     yield self.env.process(self.tile.execute_forward_process())
@@ -66,62 +61,17 @@ class Stage():
                         pks=Packet('',self.o_shape)
                         yield self.env.process(noc.STAGE_PASS_process(pks,self.cur_core_id,self.next_core_id,task_info))
                 elif c_type==ML_STATE.BACKWARD:
-                    yield self.env.process(self.tile.execute_forward_process())
+                    yield self.env.process(self.tile.execute_backward_process())
                     self.trace.append((t_last,self.env.now,c_type))    
                     self.res_fd_cnt-=1
                     if self.next_core_id!=None and self.next_core_id!=[]:
                         task_info=self.__class__.__stage_id
+                        pks=Packet('',self.i_shape)
                         yield self.env.process(noc.STAGE_PASS_process(pks,self.cur_core_id,self.next_core_id,task_info))
                 else:
-                    pass
-                #self.trace.append((t_last,self.env.now,c_type))        
-    def stage_forward_process(self,last_q:simpy.Store,next_q:simpy.Store,env:simpy.Environment,noc:wd):
-        def pro():
-            with self.worker.request() as req:
-                yield req
-                pks = yield last_q.get()
-                #print('i_shape',self.i_shape)
-                #print('pks_shape',pks.shape)
-                assert(self.i_shape==pks.shape)
-                t_last=env.now
-                #print('time:{},start forward'.format(round(env.now, 2)))
-                #TODO 修改为数据流执行
-                #yield env.timeout(20)
-                #print('time:{},start forward'.format(round(env.now, 2)))
-                yield env.process(self.tile.execute_forward_process())
-                #print('time:{},end forward'.format(round(env.now, 2)))
-                self.trace.append((t_last,env.now,0))
-            if self.next_core_id!=None and self.next_core_id!=[]:
-                task_info=self.__class__.__stage_id
-                yield env.process(noc.STAGE_PASS_process(pks,self.cur_core_id,self.next_core_id,task_info))
-            else:
-                pass
-        while True:
-                yield env.process(pro())
-                yield next_q.put(Packet('',self.o_shape))
-                break
-    def stage_backward_process(self,last_q:simpy.Store,next_q:simpy.Store,env:simpy.Environment,noc:wd):
-        def pro():
-            with self.worker.request() as req:
-                yield req
-                pks = yield next_q.get()
-                #print('o_shape',self.o_shape)
-                #print('pks_shape',pks.shape)
-                assert(self.o_shape==pks.shape)
-                t_last=env.now
-                #TODO 修改为数据流执行
-                yield env.process(self.tile.execute_backward_process())
-                self.trace.append((t_last,env.now,1))
-            if self.last_core_id!=None and self.last_core_id!=[]:
-                task_info=self.__class__.__stage_id
-                yield env.process(noc.STAGE_PASS_process(pks,self.cur_core_id,self.last_core_id,task_info))
-            else:
-                pass
-        while True:
-                yield env.process(pro())
-                yield last_q.put(Packet('',self.i_shape))
-                break
-class Stages():
+                    yield self.env.timeout(1000000)  
+                    self.trace.append((t_last,self.env.now,c_type))      
+class Pipeline():
     def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],\
                  noc:wd,pipe_type:pipe_strategy=pipe_strategy.Megatron1F1B) -> None:
         #simpy env 
@@ -133,99 +83,106 @@ class Stages():
         self.mini_batch=mini_batch_size
         self.micro_batch=micro_batch_size
         self.micro_batch_num=math.ceil(self.mini_batch/self.micro_batch)
-        self.__set_stage()
-
         self.reg=[]
         self.cur_fd_times=0
         self.cur_bd_times=0
         self.one_epoch_finish=simpy.Store(self.env,capacity=1)
         self.one_fd_finish=simpy.Store(self.env,capacity=1)
+        self.one_data_fetch=simpy.Store(self.env,capacity=1)
         self.strategy=pipe_type
         self.boost_mode=False
         self.boost_times=1  if self.stages[0].tile.Analytical else 6
-
+        self.__set_stage()
     def __set_stage(self):
         #TODO 需要检查device 在stage段无重复，否则映射不符合流水规则
         for i in range(self.stage_num):
             self.stages[i].init_info(self.micro_batch)
             self.reg.append(simpy.PriorityStore(self.env, capacity=1))
             if self.strategy==pipe_strategy.GPipe:
-                self.stages[i].stage_info=[self.pipe_type,self.mini_batch,self.micro_batch]
+                self.stages[i].stage_info=[self.strategy,self.mini_batch,self.micro_batch]
             elif self.strategy==pipe_strategy.Megatron1F1B:
-                self.stages[i].stage_info=[self.pipe_type,i,self.stage_num]
+                self.stages[i].stage_info=[self.strategy,i,self.stage_num]
             elif self.strategy==pipe_strategy.Cerebras:
-                self.stages[i].stage_info=[self.pipe_type,i ,self.stage_num]
+                self.stages[i].stage_info=[self.strategy,i ,self.stage_num]
             else:
                 raise NotImplementedError
             self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)
-    def pipeline_execute_forward_process(self):
-        for i,stg in enumerate(self.stages):
-            yield self.env.process(stg.res_use(c_type=0))
-            if self.strategy==pipe_strategy.Megatron1F1B:
-                if i==self.stage_num-2:
-                    yield self.reg[i].put(1)
-                else :
-                    self.reg[i].put(1)
-            elif self.strategy==pipe_strategy.GPipe:
-                if i==self.stage_num-1:
-                    self.cur_fd_times+=1
-                #print('self.cur_time',self.cur_time)
-                if self.cur_fd_times==self.micro_batch_num:
-                    self.one_fd_finish.put(1)
-                    print('self.one_fd_finish.put(1)',self.cur_fd_times)   
-            else:
-                raise NotImplementedError        
-    def pipeline_execute_backward_process(self): 
+    def forward(self,times):
+        with self.one_data_fetch.get() as get:
+            a=yield get
+            for i,stg in enumerate(self.stages):
+                #print( hasattr(stg,"up_state"))
+                yield self.env.process(stg.up_state(self.noc,c_type=ML_STATE.FORWARD,wait=1e-15))
+                if self.strategy==pipe_strategy.Megatron1F1B:
+                    if i==self.stage_num-2:
+                        yield self.reg[i].put(1)
+                    else :
+                        self.reg[i].put(1)
+                elif self.strategy==pipe_strategy.GPipe:
+                    if i==self.stage_num-1:
+                        self.cur_fd_times+=1
+                    #print('self.cur_time',self.cur_time)
+                    if self.cur_fd_times==times:
+                        self.one_fd_finish.put(1)
+                        #print('self.one_fd_finish.put(1)',self.cur_fd_times)   
+                else:
+                    raise NotImplementedError        
+    def backward(self,times): 
         for i in range(self.stage_num-1,-1,-1):
             if self.strategy==pipe_strategy.Megatron1F1B:
                 with self.reg[i].get() as get:
                     a=yield get
-                    stg=self.stgs[i]
-                    yield self.env.process(stg.res_use(c_type=1))  
+                    stg=self.stages[i]
+                    yield self.env.process(stg.up_state(self.noc,c_type=ML_STATE.BACKWARD,wait=1e-15))  
                     if i==0:
                         self.cur_bd_times+=1
-                    if self.cur_bd_times==self.micro_batch_num:
+                    if self.cur_bd_times==times:
                         self.one_epoch_finish.put(1)
             elif  self.strategy==pipe_strategy.GPipe:  
-                stg=self.stgs[i]
-                yield self.env.process(stg.res_use(c_type=1))  
+                stg=self.stages[i]
+                yield self.env.process(stg.up_state(self.noc,c_type=ML_STATE.BACKWARD,wait=1e-15))  
                 if i==0:
                     self.cur_bd_times+=1
-                if self.cur_bd_times==self.micro_batch_num:
+                if self.cur_bd_times==times:
                     self.one_epoch_finish.put(1)  
+    def parameter_syn(self):
+        while(True):
+            with self.one_epoch_finish.get() as get:
+                a=yield get
+                for stg in self.stages:
+                    self.env.process(stg.up_state(self.noc,c_type=ML_STATE.PARAM_SYNC,wait=1e-15))
+                break
     def start(self):
-        #TODO 修改 DP相关
-        #TODO 
-        times=self.boost_times if self.boost_mode else self.pipe_times
+        times=self.boost_times if self.boost_mode else self.micro_batch_num
         for i in range(times):
             task_info='input_data_fetch_'+str(i)
             i_shape=self.stages[0].i_shape
-            with self.f_q[0].put(Packet(task_info,i_shape)) as put:
-                #yield self.env.timeout(0)
+            with self.one_data_fetch.put(Packet(task_info,i_shape))as put:
                 yield put
                 yield self.env.process(self.noc.dram_read_group_process(i_shape,self.stages[0].cur_core_id,task_id=task_info,multicast=False))
                 
-    def pipeline_set(self,boost_mode=True): 
+    def register(self,boost_mode=True): 
         print('----------pipe_info----------')
-        print('stage num={}, extute times={}'.format(len(self.stages),self.pipe_times))
+        print('stage num={}, extute times={}'.format(len(self.stages),self.micro_batch_num))
         print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
         self.boost_mode=boost_mode
+        times=self.boost_times if self.boost_mode else self.micro_batch_num
         #self.boost_times=1 
-        def all_backward():
+        def all_backward(times):
             while(True):
                 with self.one_fd_finish.get() as get:
                     a=yield get    
-                    for i in range(self.micro_batch_num):
-                        self.env.process(self.backward()) 
+                    for i in range(times):
+                        self.env.process(self.backward(times)) 
                 break
-        self.res_set()
-        for i in range(self.micro_batch_num):
-            self.env.process(self.forward())
+        self.env.process(self.start())
+        for i in range(times):
+            self.env.process(self.forward(times))
         if self.strategy==pipe_strategy.GPipe:  
-            self.env.process(all_backward())
+            self.env.process(all_backward(times))
         elif self.strategy==pipe_strategy.Megatron1F1B:  
-            for i in range(self.micro_batch_num):
-                self.env.process(self.backward())
+            for i in range(times):
+                self.env.process(self.backward(times))
         self.env.process(self.parameter_syn())
         
     def simpy_run(self,until_ms=2000):
@@ -235,12 +192,12 @@ class Stages():
         self.env.run(until=until_ms)
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
-    def pipeline_status(self,path='./status/pipeline/',draw_pipe=True,write_log=False,clear=True):
+    def status(self,path='./status/pipeline/',draw_pipe=True,write_log=False,clear=True):
         tm=time.strftime('_%m_%d_%H_%M_%S',time.localtime())
         name='pipeline'+str(tm)
         name_log=name+'.log'
         all_trace=[]
-        title=str(self.pipe_type)
+        title=str(self.strategy)
         for stage in self.stages:
             all_trace.append(stage.trace)
         pipe_endtime=all_trace[0][-1][1]
@@ -248,7 +205,7 @@ class Stages():
             #add boosted time
             max_unit_time_1F1B=max_ave_1F1B_time(all_trace)#all_trace[-1][1][1]-all_trace[-1][0][0]#
             #print(max_unit_time_1F1B)
-            pipe_endtime=pipe_endtime+(self.pipe_times-self.boost_times)*max_unit_time_1F1B 
+            pipe_endtime=pipe_endtime+(self.micro_batch_num-self.boost_times)*max_unit_time_1F1B 
         endtime_days=pipe_endtime/1000/60/60/24
         endtime_secs=pipe_endtime/1000
         if not os.path.exists(path):

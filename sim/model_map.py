@@ -1,7 +1,7 @@
 
 from wafer_device import Wafer_Device 
 from comp_graph import CompGraph
-import pipeline as pipe
+import pipeline_copy as pipe
 from ML import *
 import simpy
 import math

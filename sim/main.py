@@ -2,7 +2,7 @@
 from wafer_device import Wafer_Device 
 from comp_graph import CompGraph
 from model_map import mapping
-import pipeline as pipe
+import pipeline_copy as pipe
 from ML import *
 import simpy
 if __name__ == '__main__':
@@ -56,15 +56,15 @@ if __name__ == '__main__':
     stgs=mapping(env,gpt_gp,tile_config,wd)
     STG_NUM=len(stgs)
     micro_batch=batch_size//STG_NUM
-    gpt_pipe_sim=pipe.Stages(
+    gpt_pipe_sim=pipe.Pipeline(
         env=env,
         mini_batch_size=batch_size,
         micro_batch_size=micro_batch,#TODO
         stages=stgs,
         noc=wd,
-        pipe_type=pipe_strategy.Megatron1F1B
+        pipe_type=pipe_strategy.Megatron1F1B#pipe_strategy.GPipe#
         )
-    gpt_pipe_sim.pipeline_set(boost_mode=True)
+    gpt_pipe_sim.register(boost_mode=True)
   
     #5.simpy run  
     ONE_WEEK_MS=24*60*60*7*1000
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     gpt_pipe_sim.simpy_run(until_ms=scale_sim_time)
 
     #6. log and info output
-    gpt_pipe_sim.pipeline_status(clear=False)
+    gpt_pipe_sim.status(clear=False)
 
     #res_type='edge_dram' or '3ddram' or 'noc' or 'all'
     #if not wafer_config['Analytical']:
