@@ -6,7 +6,7 @@ import pipeline as pipe
 from ML import *
 import simpy
 if __name__ == '__main__':
-    #0 TODO set config info by configparser
+    #TODO set config info by configparser
     Analytical=True
     wafer_config={
         'wafer_name':'test',
