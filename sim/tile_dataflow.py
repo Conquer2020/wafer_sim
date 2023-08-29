@@ -855,7 +855,7 @@ class Tile():# for compute process
             yield simpy.AllOf(self.env,execute_event)
             #if comm_event!=None:
             #    yield self.env.process(comm_event)
-    def execute_weight_update_process(self):
+    def update_process(self):
         def analysis_template_event(param=[None,None,None,None,None,None,None]):
             assert(len(param)==7)
             event_list=[]
@@ -876,7 +876,6 @@ class Tile():# for compute process
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[6]*self.full_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_load,gather=True))
             return event_list
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
-
         for op in self.op_list:
             update_param=[None,None,None,None,op.f_b_u_comm_d[2],None,None]
             if sram1==store_strategy.ACT_weight:
@@ -919,10 +918,10 @@ class Tile():# for compute process
             events=analysis_template_event(update_param)
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
-    
+    '''
     def forward_process(self):
         #print("forward_process start @ {:.3f} ms".format(self.env.now))
-        print(self.forward_event)
+        #print(self.forward_event)
         for events in self.forward_event:
             execute_event=[self.env.process(event) for event in events]
             print("forward_process start @ {:.3f} ms".format(self.env.now))
@@ -942,7 +941,7 @@ class Tile():# for compute process
         for events in self.update_event:
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
+    '''
     
-
     
 

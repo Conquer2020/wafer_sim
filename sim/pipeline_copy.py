@@ -212,9 +212,9 @@ class Pipeline():
             os.makedirs(path)
         elif clear:
             ls = os.listdir(path)
-            for i in ls:
+            for i in ls: 
                 f_path = os.path.join(path, i)
-                #print(f_path)
+                #print(f_path)    
                 os.remove(f_path)
         if write_log:
             with open(path+name_log, 'w') as f:
