@@ -18,7 +18,7 @@ class OpNode(Oppd):
                 format(self.hint_name,self.type,self.param_dim,self.last_nodes,self.next_nodes)
         
     @staticmethod
-    def _op2dict(op):
+    def _op2dict(op): 
         #print(op)
         op_dict={}
         op_dict['type']=str(op.type.name)

@@ -5,8 +5,6 @@ import pipeline_copy as pipe
 from ML import *
 import simpy
 import math
-
-
 def mapping(env:simpy.Environment,gpt_gp:CompGraph,tile_config:dict,wd:Wafer_Device):
     tiles_id=wd.device_list() 
     STG_NUM=32

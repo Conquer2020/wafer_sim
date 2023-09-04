@@ -25,7 +25,24 @@ class Packet():
         for i in range(shape_dim):
             shape.append(random.randint(1,128))
         return Packet(id=id,shape=shape)
-    
+class DDR_model():
+    def __init__(self,name,env,transfer_rate_M,channel_num,die_num,per_die_cap_GB,bit_width=32) -> None:
+        self.name=name
+        self.transfer_rate_M=transfer_rate_M
+        self.channel_num=channel_num
+        self.die_num=die_num
+        self.die_cap_GB=per_die_cap_GB
+        self.bit_width=bit_width
+        self.capacity=die_num*per_die_cap_GB
+        self.env=env
+        self.access_resource=Resource(self.env,capacity=1)
+        self.bandwidth=transfer_rate_M*bit_width/8*channel_num
+    def access_process(self,data_size_MB,task_id=1,write=True,DEBUG_MODE=False):
+        with self.access_resource.request() as req:
+            yield req 
+            latency=data_size_MB/self.bandwidth
+            #latency+=self.write_latency if write else self.read_latency
+            yield self.env.timeout(latency)
 class dram_model():
     def __init__(self,name,env,bw_GB=256,capacity_GB=16*100,read_latency_ms=0,write_latency_ms=0) -> None:
         self.name=name
@@ -54,10 +71,9 @@ class Wafer_Device():
                 tile_dram_capacity_GB=6/16,
                 edge_die_dram_bw_GB=256,
                 clk_freq_GHz=1,
-                with_3ddram_per_tile=True,
+                with_dram_per_tile=True,
                 Analytical=True
                 ) -> None:
-        #@3ddram data from wanghuizheng
         self.wafer_name=wafer_name
 
         self.tile_intra_shape=tile_intra_shape
@@ -65,7 +81,7 @@ class Wafer_Device():
         self.tile_intra_noc_bw_GB=tile_intra_noc_bw_GB
         self.tile_inter_noc_bw_GB=tile_inter_noc_bw_GB
 
-        self.with_3ddram_per_tile=with_3ddram_per_tile
+        self.with_dram_per_tile=with_dram_per_tile
         self.tile_dram_bw_GB=tile_dram_bw_GB
         self.tile_dram_capacity_GB=tile_dram_capacity_GB
 
@@ -118,7 +134,7 @@ class Wafer_Device():
             self.edge_dram_resource.append(dram_model('DDR',self.env,self.edge_die_dram_bw_GB))#right dram
         print('edge dram resource is created...')
 
-        if self.with_3ddram_per_tile:
+        if self.with_dram_per_tile:
             tile_dram_num=x1*x0*y1*y0
             for _ in range(tile_dram_num):
                 self.dram_per_tile_resource.append(dram_model('3DDRAM',self.env,self.tile_dram_bw_GB,self.tile_dram_capacity_GB))
@@ -259,7 +275,7 @@ class Wafer_Device():
             break
     def tile_dram_access_process(self,access_size_MB,src_id,task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         while(True):
-            assert(self.with_3ddram_per_tile)
+            assert(self.with_dram_per_tile)
             if not self.Analytical:
                 yield self.env.process(self.dram_per_tile_resource[src_id].access_process\
                                     (access_size_MB,task_id=task_id,write=WRITE,DEBUG_MODE=DEBUG_MODE))
@@ -407,7 +423,7 @@ class Wafer_Device():
 if __name__ == '__main__':
     Debug=True
     env = simpy.Environment()
-    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_3ddram_per_tile=True,Analytical=True)
+    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_dram_per_tile=True,Analytical=True)
     '''
     env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))
