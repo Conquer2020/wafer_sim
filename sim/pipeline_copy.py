@@ -73,7 +73,7 @@ class Stage():
                     self.trace.append((t_last,self.env.now,c_type))      
 class Pipeline():
     def __init__(self,env,mini_batch_size,micro_batch_size,stages:List[Stage],\
-                 noc:wd,pipe_type:pipe_strategy=pipe_strategy.Megatron1F1B) -> None:
+                 noc:wd,pipe_type:pipe_strategy=pipe_strategy.Megatron1F1B,train=True) -> None:
         #simpy env 
         self.env=env
         #pipeline info
@@ -84,6 +84,7 @@ class Pipeline():
         self.micro_batch=micro_batch_size
         self.micro_batch_num=math.ceil(self.mini_batch/self.micro_batch)
         self.reg=[]
+        self.train=train
         self.cur_fd_times=0
         self.cur_bd_times=0
         self.one_epoch_finish=simpy.Store(self.env,capacity=1)
@@ -91,7 +92,7 @@ class Pipeline():
         self.one_data_fetch=simpy.Store(self.env,capacity=1)
         self.strategy=pipe_type
         self.boost_mode=False
-        self.boost_times=1  if self.stages[0].tile.Analytical else 6
+        self.boost_times=3  if self.stages[0].tile.Analytical else 6
         self.__set_stage()
     def __set_stage(self):
         #TODO 需要检查device 在stage段无重复，否则映射不符合流水规则
@@ -106,7 +107,7 @@ class Pipeline():
                 self.stages[i].stage_info=[self.strategy,i ,self.stage_num]
             else:
                 raise NotImplementedError
-            self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].cur_core_id,self.stages[i].op_list,self.noc)
+            self.stages[i].tile.mapping_analysis(self.stages[i].stage_info,self.stages[i].cur_core_id,self.stages[i].op_list,self.noc,self.train)
     def forward(self,times):
         with self.one_data_fetch.get() as get:
             a=yield get
@@ -178,12 +179,13 @@ class Pipeline():
         self.env.process(self.start())
         for i in range(times):
             self.env.process(self.forward(times))
-        if self.strategy==pipe_strategy.GPipe:  
-            self.env.process(all_backward(times))
-        elif self.strategy==pipe_strategy.Megatron1F1B:  
-            for i in range(times):
-                self.env.process(self.backward(times))
-        self.env.process(self.parameter_syn())
+        if self.train:
+            if self.strategy==pipe_strategy.GPipe:  
+                self.env.process(all_backward(times))
+            elif self.strategy==pipe_strategy.Megatron1F1B:  
+                for i in range(times):
+                    self.env.process(self.backward(times))
+            self.env.process(self.parameter_syn())
         
     def simpy_run(self,until_ms=2000):
         print('----------simpy_run----------')
@@ -193,21 +195,27 @@ class Pipeline():
         sim_end_t=time.time()
         print('finish simpy simulation with {:.3f}s\n'.format(sim_end_t-sim_start_t))
     def status(self,path='./status/pipeline/',draw_pipe=True,write_log=False,clear=True):
+        exe_mode='training' if self.train else  'inference'
         tm=time.strftime('_%m_%d_%H_%M_%S',time.localtime())
         name='pipeline'+str(tm)
         name_log=name+'.log'
         all_trace=[]
-        title=str(self.strategy)
+        pipe_endtime=0
+        title=str(self.strategy) if self.train else 'Inference'
         for stage in self.stages:
             all_trace.append(stage.trace)
-        pipe_endtime=all_trace[0][-1][1]
-        if self.boost_mode:
+            if stage.trace[-1][1]>pipe_endtime:
+                pipe_endtime=stage.trace[-1][1]
+        #print(all_trace)
+        #pipe_endtime=all_trace[0][-1][1]
+        #print(all_trace[0])
+        if self.boost_mode :
             #add boosted time
-            max_unit_time_1F1B=max_ave_1F1B_time(all_trace)#all_trace[-1][1][1]-all_trace[-1][0][0]#
-            #print(max_unit_time_1F1B)
-            pipe_endtime=pipe_endtime+(self.micro_batch_num-self.boost_times)*max_unit_time_1F1B 
-        endtime_days=pipe_endtime/1000/60/60/24
+                max_unit_time_1F_1B=max_ave_1F_1B_time(all_trace,self.train)#all_trace[-1][1][1]-all_trace[-1][0][0]#
+                #print(max_unit_time_1F1B)
+                pipe_endtime=pipe_endtime+(self.micro_batch_num-self.boost_times)*max_unit_time_1F_1B 
         endtime_secs=pipe_endtime/1000
+        endtime_days=endtime_secs/60/60/24
         if not os.path.exists(path):
             os.makedirs(path)
         elif clear:
@@ -220,8 +228,9 @@ class Pipeline():
             with open(path+name_log, 'w') as f:
                 f.write(str(all_trace))
         if draw_pipe:
-            draw_pipeline(all_trace,path=path,title=title,endtime=endtime_days,name=name)
-        print('{} ML training pipeline endtime {:.1f} days [{:.1f}s]'.format(title,endtime_days,endtime_secs))
+            draw_pipeline(all_trace,path=path,title=title,throughout=self.mini_batch/endtime_secs,name=name)
+        print('{} ML {} pipeline endtime {:.4f} days [{:.4f}s]'.format(title,exe_mode,endtime_days,endtime_secs))
+        print('{} ML {} pipeline throughout= {:.4f} sample/s'.format(title,exe_mode,self.mini_batch/endtime_secs))
         return endtime_days
 
 

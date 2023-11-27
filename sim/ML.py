@@ -1,7 +1,12 @@
 
-from  util import BaseEnum as Enum
-#定义枚举类
-OP = Enum('OP', ('Linear', 'Conv2', 'Embedding', 'Softmax','LayerNorm','Transformer'))
+from enum import Enum
+
+class Enum(Enum):
+    def __str__(self):
+        return self.name
+    def __repr__(self):
+        return f'{self.name}'
+OP = Enum('OP', ('Linear', 'Conv2', 'Embedding', 'Softmax','LayerNorm','Transformer','Pool','Concat','Sum'))
 COMM=Enum('COMM',('NONE','ALL_REDUCE','ALL_2_ALL'))
 OPTIMIZER=Enum('OPTIMIZER',('NONE','SGD','ADAM'))
 BYTES={'NONE':0,'INT8':1,'FP16':2,'TF32':2.375,'FP32':4}
@@ -30,4 +35,6 @@ def str2openum(op_str):
         return OP.LayerNorm
     elif op_str=='Transformer':
         return OP.Transformer
+    elif op_str=='Pool':
+        return OP.Pool
     return NotImplementedError

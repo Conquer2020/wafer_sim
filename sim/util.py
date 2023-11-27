@@ -1,14 +1,12 @@
 import matplotlib.pyplot as plt
 import os
-from enum import Enum
 from typing import List
 from queue import Queue
 from operator import mul
 from functools import reduce
-class BaseEnum(Enum):
-    def __str__(self):
-        return self.name
-    
+from ML import *
+MY_COLOR=['#63b2ee','#76da91','#f8cb7f','#f89588','#7cd6cf','#9192ab','#7898e1','#efa666','#eddd86','#9987ce','#63b2ee','#76da91',]#maktalong
+
 def mulc(a:List[int]):
     return reduce(mul,a)
 def shape_suppose(size):
@@ -82,37 +80,44 @@ def split_comm_group(Group_Id,parall_dims):
                     temp_group.append(Group_Id[i+j*(Group_Size//split_group[k]):(j+1)*Group_Size//split_group[k]:offset])
         groups.append(temp_group)
     return groups
-def draw_pipeline(trace_list,path,title,endtime,name='pipeline'):
+def draw_pipeline(trace_list,path,title,throughout,name='pipeline'):
     #print(trace_list)
     #[[(s,e),(s,e),(s,e)],[],[]], []=stages,s=micro_start_time,e=micro_end_time
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    #color = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#10c020', '#D20F99','#FFFFFF','#000000']
-    color=['#63b2ee','#76da91','#f8cb7f','#f89588','#7cd6cf','#9192ab','#7898e1','#efa666','#eddd86','#9987ce','#63b2ee','#76da91','#100000']#maktalong
+    #COLOR = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#10c020', '#D20F99','#FFFFFF','#000000']
+    #COLOR=['#63b2ee','#76da91','#f8cb7f','#f89588','#7cd6cf','#9192ab','#7898e1','#efa666','#eddd86','#9987ce','#63b2ee','#76da91','#100000']#maktalong
     num=len(trace_list)
     leng=len(trace_list[0])
-    width_scale=max(trace_list[0][-1][1],trace_list[-1][-1][1])
+    width_scale=0
+    for trace in trace_list:
+        if trace[-1][1]>width_scale:
+            width_scale=trace[-1][1]
+    #width_scale=max(trace_list[0][-1][1],trace_list[-1][-1][1])
     height_scale=4
     single_height=1
     start_height=single_height/2
     for j in range(num):
         k=0
         m=0
+        leng=len(trace_list[j])
         for i in range(leng):
             x=trace_list[j][i]
             #facecolor=color[0] if x[2]==0 else color[5]
-            if x[2]==0:
-                facecolor=color[k % len(color)]
+            if x[2]==ML_STATE.FORWARD:
+                facecolor=MY_COLOR[k % len(MY_COLOR)]
                 k+=1
-            else:
-                facecolor=color[m % len(color)]
+            elif x[2]==ML_STATE.BACKWARD:
+                facecolor=MY_COLOR[m % len(MY_COLOR)]
                 m+=1
-            edgecolor=color[-1]
+            else:
+                facecolor=MY_COLOR[0]
+            edgecolor=MY_COLOR[-1]
             rect = plt.Rectangle((x[0],start_height+single_height*j),(x[1]-x[0]),single_height,fill=True,facecolor=facecolor,linewidth=0.5)
             ax.add_patch(rect)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    plt.title('{} stages ML {} pipeline [{:.1f} days]'.format(num,title,endtime))
+    plt.title('{} stages ML {} pipeline [{:.3f} sample/s]'.format(num,title,throughout))
     ax.set_ylim(0, num+1)
     ax.set_yticks([num-i for i in range(num)])
     ax.set_xlim(0, width_scale)
@@ -125,17 +130,21 @@ def data_average(data,ave_size=1000):
     #data type[[start_time,end_time,max_resource],...]
     assert(ave_size>1)
     pass
-def max_ave_1F1B_time(trace):
+def max_ave_1F_1B_time(trace,train):
     max_1F1B_time=0
-    tp_time=0
+    tp_time=0 
     stage_num=len(trace)
     fb_num=len(trace[0])
-    #print(stage_num,fb_num)
+    print(stage_num,fb_num)
     for i in range(stage_num):
         tp_time=0
+        fb_num=len(trace[i])
         for j in range(fb_num):
             tp_time+=(trace[i][j][1]-trace[i][j][0])
-        tp_time/=(fb_num /2)
+        if train:
+            tp_time/=(fb_num /2)
+        else:
+            tp_time/=fb_num
         #print(i,tp_time)
         if max_1F1B_time< tp_time:
             max_1F1B_time=tp_time
@@ -206,4 +215,60 @@ def visualize_resource(data:List,path,name,clear_redundance=True,max_resource=25
     plt.savefig(os.path.join(path,name+'.png'))
     plt.close()
     return data_list
-        
+def draw_mapping(wd,ml_name,tiles=[],path='status',ori=False):
+    fig = plt.figure(figsize=(12,12))
+    ax = fig.add_subplot(111)
+    x0=wd.tile_intra_shape[0]
+    x1=wd.tile_inter_shape[0]
+    y0=wd.tile_intra_shape[1]
+    y1=wd.tile_inter_shape[1]
+    max_s=max(y0*y1,x0*x1)
+    core_weight=0.8
+    core_high=0.8
+
+    #print(x1,x0)
+    for xj in range(x1):
+        for yj in range(y1):
+            facecolor=MY_COLOR[(yj+xj*y1)%len(MY_COLOR)]
+            for xi in range(x0):
+                for yi in range(y0):
+                    xx=(xi+xj*x0-0.4)
+                    yy=(yi+yj*y0)-0.4
+                    rect = plt.Rectangle((yy,xx),core_weight,core_high,fill=ori,facecolor=facecolor,linewidth=0.1)
+                    ax.add_patch(rect)
+    #yi+yj*y0+xi*y1*y0+xj*y0*y1*x0
+    if(tiles!=[]):
+        for ids,tile in enumerate(tiles) :
+            for id in tile:
+                xj=id//(y0*y1*x0)
+                id-=xj*y0*y1*x0
+                xi=id//(y1*y0)
+                id-=xi*y1*y0
+                yj=id//y0
+                id-=yj*y0
+                yi=id
+                #print(xi,yi,xj,yj)
+                xx=(xi+xj*x0-0.4)
+                yy=(yi+yj*y0)-0.4
+                #print(yy,xx)         
+                plt.text(x=yy+0.4, y=xx+0.5, s=ids, rotation=1,ha='center',)
+                facecolor=MY_COLOR[ids%len(MY_COLOR)]
+                rect = plt.Rectangle((yy,xx),core_weight,core_high,fill=not ori,facecolor=facecolor,linewidth=0.1)
+                ax.add_patch(rect)
+    ax.set_ylim( y0*y1-1,0)
+    ax.set_xlim(0, x0*x1-1)
+    # 设置坐标轴上的数字显示的位置，top:显示在顶部  bottom:显示在底部,默认是none
+    ax.xaxis.set_ticks_position('top')
+    ax.yaxis.set_ticks_position('left')
+    name=ml_name+'_map'
+    plt.axis('equal')
+    plt.xlabel("x_direct")
+    plt.ylabel("y_scale")
+    if not os.path.exists(path):
+        os.makedirs(path)
+    plt.savefig(os.path.join(path,name+'.png'))
+    plt.close()
+    #plt.show()
+
+
+

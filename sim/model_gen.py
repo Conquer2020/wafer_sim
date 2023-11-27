@@ -1,18 +1,105 @@
 from comp_graph import CompGraph,OpNode
 from ML import *
 
-#here is a sample Tranformer model for test
-#
-def Transformer_Gen(L=96,B=1564,S=2048,H=12288,A=96):
+def GPT3_Gen(path='model',L=96,B=1564,S=2048,H=12288,A=96):
     #L,B,S,H,A=L,B,S,H,A
     ops=[]
-    gp=CompGraph()
+    gp=CompGraph(name='GPT3')
     for i in range(L):
         hint='t'+str(i)
         ops.append(OpNode(op_type=OP.Transformer,op_param=[B,S,H,A],hint_name=hint))
-        #print(i)
         if i==0:
             gp.AddEdge(ops[i])
         else:
             gp.AddEdge(ops[i],ops[i-1])
-    CompGraph.gwrite(gp,path='mljson',name='gpt-3.json')
+    CompGraph.gwrite(gp,path=path,name='GPT3')
+
+def BERT_LARGE_Gen(path='model',V=30522,L=24,B=512,S=512,H=1024,A=16):
+    #L,B,S,H,A=L,B,S,H,A
+    ops=[]
+    gp=CompGraph(name='BERT_LARGE')
+    emb=OpNode(op_type=OP.Embedding,op_param=[B,S,H,V,2,S],hint_name='emb_3')
+    gp.AddEdge(emb)
+    for i in range(L):
+        hint='L'+str(i)
+        ops.append(OpNode(op_type=OP.Transformer,op_param=[B,S,H,A],hint_name=hint))
+        #print(i)
+        if i==0:
+            gp.AddEdge(ops[i],emb)
+        else:
+            gp.AddEdge(ops[i],ops[i-1])
+    pooler=OpNode(op_type=OP.Linear,op_param=[B,H,S,H],hint_name='pooler')
+    #pred_linear=OpNode(op_type=OP.Linear,op_param=[B,V,S,H],hint_name='pred_linear')
+    gp.AddEdge(pooler,ops[-1])
+    CompGraph.gwrite(gp,path=path,name='BERT_LARGE')
+
+def ResNet50_Gen(path='model',B=64,H=224,W=224,C=3):
+    def BTNK1_Gen(gp,op_start,hint,B,C,W,C1,S):#S=stride
+        #op_param=[B,C,H,W,R,S,K]
+        ops=[]
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,1,S,C1],hint_name=hint+'_left0'))
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,3,1,C1],hint_name=hint+'_left1'))
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,1,1,C1*4],hint_name=hint+'_left2'))
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,1,S,C1*4],hint_name=hint+'_right0'))
+        gp.AddEdge(ops[0],op_start)
+        gp.AddEdge(ops[3],op_start)
+        gp.AddEdge(ops[1],ops[0])
+        gp.AddEdge(ops[2],ops[1])
+        return ops[2]#,ops[3] 
+    def BTNK2_Gen(gp,op_start,hint,B,C,W):
+        ops=[]
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,1,1,C//4],hint_name=hint+'_left0'))
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,3,1,C//4],hint_name=hint+'_left1'))
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,W,W,1,1,C],hint_name=hint+'_left2'))
+        gp.AddEdge(ops[0],op_start)
+        gp.AddEdge(ops[1],ops[0])
+        gp.AddEdge(ops[2],ops[1])
+        return ops[2]#,op_start
+    def STAGE0_Gen(gp,B=64,H=224,W=224,C=3):
+        hint='STAGE0_'
+        ops=[]
+        ops.append(OpNode(op_type=OP.Conv2,op_param=[B,C,H,W,7,2,64],hint_name=hint+'0'))
+        ops.append(OpNode(op_type=OP.Pool,op_param=[B,C,H,W,3,2],hint_name=hint+'1'))
+        gp.AddEdge(ops[0])
+        gp.AddEdge(ops[1])
+        return ops[1]
+    def STAGE1_Gen(gp,op_start,B=64,H=56,W=56,C=256):
+        hint='STAGE1_'
+        op0=BTNK1_Gen(gp,op_start,hint+'BTNK1',B,64,56,64,1)
+        op1=BTNK2_Gen(gp,op0,hint+'BTNK2_0',B,256,56)
+        op2=BTNK2_Gen(gp,op1,hint+'BTNK2_1',B,256,56)
+        return op2
+    def STAGE2_Gen(gp,op_start,B=64,H=56,W=56,C=256):
+        hint='STAGE2_'
+        op0=BTNK1_Gen(gp,op_start,hint+'BTNK1',B,256,56,128,2)
+        op1=BTNK2_Gen(gp,op0,hint+'BTNK2_0',B,512,28)
+        op2=BTNK2_Gen(gp,op1,hint+'BTNK2_1',B,512,28)
+        op3=BTNK2_Gen(gp,op2,hint+'BTNK2_2',B,512,28)
+        return op3
+    def STAGE3_Gen(gp,op_start,B=64,H=28,W=28,C=512):
+        hint='STAGE3_'
+        op0=BTNK1_Gen(gp,op_start,hint+'BTNK1',B,256,56,128,2)
+        op1=BTNK2_Gen(gp,op0,hint+'BTNK2_0',B,512,28)
+        op2=BTNK2_Gen(gp,op1,hint+'BTNK2_1',B,512,28)
+        op3=BTNK2_Gen(gp,op2,hint+'BTNK2_2',B,512,28)
+        op4=BTNK2_Gen(gp,op3,hint+'BTNK2_3',B,512,28)
+        op5=BTNK2_Gen(gp,op4,hint+'BTNK2_4',B,512,28)
+        return op5
+    
+    def STAGE4_Gen(gp,op_start,B=64,H=14,W=14,C=1024):
+        hint='STAGE4_'
+        op0=BTNK1_Gen(gp,op_start,hint+'BTNK1',B,1024,14,512,2)
+        op1=BTNK2_Gen(gp,op0,hint+'BTNK2_0',B,2048,7)
+        op2=BTNK2_Gen(gp,op1,hint+'BTNK2_1',B,2048,7)
+        return op2
+    gp=CompGraph(name='ResNet50')
+    op0=STAGE0_Gen(gp,B=64,H=224,W=224,C=3)
+    op1=STAGE1_Gen(gp,op0,B=64,H=56,W=56,C=256)
+    op2=STAGE2_Gen(gp,op1,B=64,H=56,W=56,C=256)
+    op3=STAGE3_Gen(gp,op2,B=64,H=28,W=28,C=512)
+    op4=STAGE4_Gen(gp,op3,B=64,H=14,W=14,C=1024)
+    CompGraph.gwrite(gp,path='model',name='ResNet50')
+if __name__ == '__main__':
+    BERT_LARGE_Gen()
+    GPT3_Gen()
+    ResNet50_Gen()

@@ -55,7 +55,7 @@ class CompGraph():
         return next(self.__iter_items)
     def __str__(self):
         Compute_Graph_str='CompGraph:{}'.format(self.name)
-        Compute_Graph_str+=',Root:{}\n'.format(self.root.hint_name)
+        Compute_Graph_str+=',Root:{}\n'.format(self.op_dict[self.root].hint_name)
         return Compute_Graph_str
     def __len__(self):
         return len(self.op_dict)
@@ -96,10 +96,10 @@ class CompGraph():
         pass
 
     @staticmethod
-    def gread(path='test',name='gh.json'):
+    def gread(path='test',name='gh'):
         if os.path.exists(path) is False:
             assert False,'No {} in ./{}/'.format(name,path)
-        whole_path_filename = os.path.join(path, name)
+        whole_path_filename = os.path.join(path, name+'.json')
         with open(whole_path_filename, mode="r", encoding='utf-8') as f:
             gpdict=json.load(f)
         gp=CompGraph()
@@ -144,10 +144,10 @@ class CompGraph():
         return gp
 
     @staticmethod
-    def gwrite(gp,path='test',name='gh.json'):
+    def gwrite(gp,path='test',name='gh'):
         if os.path.exists(path) is False:
             os.mkdir(path)
-        whole_path_filename = os.path.join(path, name)
+        whole_path_filename = os.path.join(path, name+'.json')
         with open(whole_path_filename, mode="w", encoding='utf-8') as f:
             gpdict=CompGraph._graph2dict(gp)
             #print(gpdict)
@@ -171,8 +171,8 @@ if __name__ == '__main__':
     op2.dpmap(device_id=[4,5])
     op3.dpmap(device_id=[6,7,10,11,14,15])
     op4.dpmap(device_id=[12,13])
-    CompGraph.gwrite(gp,path='mljson',name='test.json')
-    gp1=CompGraph.gread(path='mljson',name='test.json')
-    CompGraph.gwrite(gp1,path='mljson',name='test1.json')
+    CompGraph.gwrite(gp,path='model',name='test')
+    gp1=CompGraph.gread(path='model',name='test')
+    CompGraph.gwrite(gp1,path='model',name='test1')
 
 

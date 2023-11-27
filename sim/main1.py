@@ -8,7 +8,7 @@ import perf_func as pf
 from algo import ga
 if __name__ == '__main__':
     #TODO set config info by configparser
-    Analytical=True
+    Analytical=False
     wafer_config={
         'wafer_name':'test',
         'tile_inter_shape':[4,4],#scale out dimension

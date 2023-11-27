@@ -5,8 +5,7 @@ import random
 from util import *
 from functools import wraps
 import shutil
-import numpy as np
-DIRECT=Enum('DIRECT',('LEFT','RIGHT','UP','DOWN'))
+from ML import *
 class Packet():
     def __init__(self,id,shape:List[int],meta_data='test') -> None:
         self.id=id
@@ -18,6 +17,7 @@ class Packet():
         return temp/1000/1000
     def __str__(self): 
         return 'Packet:(id:{},shape:{},size:{} MByte,meta:{})'.format(self.id,self.shape,self.size,self.meta_data)
+
     @staticmethod
     def random_gen():
         id=random.randint(0,10000)
@@ -26,7 +26,6 @@ class Packet():
         for i in range(shape_dim):
             shape.append(random.randint(1,128))
         return Packet(id=id,shape=shape)
-'''
 class DDR_model():
     def __init__(self,name,env,transfer_rate_M,channel_num,die_num,per_die_cap_GB,bit_width=32) -> None:
         self.name=name
@@ -38,171 +37,159 @@ class DDR_model():
         self.capacity=die_num*per_die_cap_GB
         self.env=env
         self.access_resource=Resource(self.env,capacity=1)
-        self.bandwidth=transfer_rate_M*bit_width/8*channel_num #GB/s
-    def access_process(self,data_MB,task_id=1,write=True,DEBUG_MODE=False):
+        self.bandwidth=transfer_rate_M*bit_width/8*channel_num
+    def access_process(self,data_size_MB,task_id=1,write=True,DEBUG_MODE=False):
         with self.access_resource.request() as req:
             yield req 
-            latency=data_MB/self.bandwidth
+            latency=data_size_MB/self.bandwidth
             #latency+=self.write_latency if write else self.read_latency
             yield self.env.timeout(latency)
-    def gen_latency(self,data_MB):
-        return data_MB/self.bandwidth
-'''
 class dram_model():
-    def __init__(self,name,env,attach_tile_id,bw_GB=256,capacity_GB=16*100,read_latency_ms=0,write_latency_ms=0) -> None:
+    def __init__(self,name,env,bw_GB=256,capacity_GB=16*100,read_latency_ms=0,write_latency_ms=0) -> None:
         self.name=name
         self.bw_GB=bw_GB
         self.read_latency=read_latency_ms
         self.write_latency=write_latency_ms
-        self.attach_tile_id=attach_tile_id
+        
         #TODO consider the dram capacity influence for total ml network
         #@fangjh21.20230602: related to embedding op when ml network is recommoned system like DLRM ,etc.
         self.capacity=capacity_GB 
         self.env=env
         self.access_resource=Resource(self.env,capacity=1)
-    def access_process(self,data_MB,task_id=1,write=True,DEBUG_MODE=False):
+    def access_process(self,data_size_MB,task_id=1,write=True,DEBUG_MODE=False):
         with self.access_resource.request() as req:
             yield req 
-            latency=data_MB/self.bw_GB
+            latency=data_size_MB/self.bw_GB
             latency+=self.write_latency if write else self.read_latency
             yield self.env.timeout(latency)
-    def analytical_latency(self,data_MB):
-        return data_MB/self.bw_GB
-class Router_Link():
-    def __init__(self,env,attach_tile_id,bw_GB:List[float],link_latency_ns) -> None:
-        self.env=env
-        self.attach_tile_id=attach_tile_id
-        self.bw_GB={
-            DIRECT.LEFT:bw_GB[0],
-            DIRECT.RIGHT:bw_GB[1],
-            DIRECT.UP:bw_GB[2],
-            DIRECT.DOWN:bw_GB[3]
-                  } 
-        self.link_latency_ns=link_latency_ns
-        self.res={
-            DIRECT.LEFT:Resource(self.env,capacity=1),
-            DIRECT.RIGHT:Resource(self.env,capacity=1),
-            DIRECT.UP:Resource(self.env,capacity=1),
-            DIRECT.DOWN:Resource(self.env,capacity=1)
-                  }      
-    def transfer_process(self,data_MB,direct=DIRECT.LEFT):
-        with self.res[direct].request() as req:
-            yield req 
-            latency=data_MB/self.bw_GB[direct]
-            latency+=self.link_latency_ns 
-            yield self.env.timeout(latency)
-    def analytical_latency(self,data_MB,direct=DIRECT.LEFT):
-        return data_MB/self.bw_GB[direct]
-    
+
 class Wafer_Device():
     def __init__(self,env,wafer_name='test_wafer',
-                tile_shape=[4,4],die_shape=[2,2],
-                tile_noc_bw_GB=256,
-                die_noc_bw_GB=256*0.6,
-                die_dram_bw_GB=12288/16/8,
-                die_dram_cap_GB=6/16,
+                tile_intra_shape=[4,4],tile_inter_shape=[2,2],
+                tile_intra_noc_bw_GB=256,
+                tile_inter_noc_bw_GB=256*0.6,
+                tile_dram_bw_GB=12288/16/8,
+                tile_dram_capacity_GB=6/16,
                 edge_die_dram_bw_GB=256,
                 clk_freq_GHz=1,
-                with_dram_per_die=True,
+                with_dram_per_tile=True,
                 Analytical=True
                 ) -> None:
         self.wafer_name=wafer_name
 
-        self.tile_shape=tile_shape
-        self.die_shape=die_shape
-        self.tile_noc_bw_GB=tile_noc_bw_GB
-        self.die_noc_bw_GB=die_noc_bw_GB
-        self.with_dram_per_die=with_dram_per_die
-        self.die_dram_bw_GB=die_dram_bw_GB
-        self.die_dram_cap_GB=die_dram_cap_GB
+        self.tile_intra_shape=tile_intra_shape
+        self.tile_inter_shape=tile_inter_shape
+        self.tile_intra_noc_bw_GB=tile_intra_noc_bw_GB
+        self.tile_inter_noc_bw_GB=tile_inter_noc_bw_GB
+
+        self.with_dram_per_tile=with_dram_per_tile
+        self.tile_dram_bw_GB=tile_dram_bw_GB
+        self.tile_dram_capacity_GB=tile_dram_capacity_GB
 
         self.edge_die_dram_bw_GB=edge_die_dram_bw_GB
-        self.noc_response_latency_ms=0
-        self.dram_response_latency_ms=0
-        self.route_XY='X'
         self.clk_freq_GHz=clk_freq_GHz
+        self.noc_response_latency_ms=0.001
+        self.dram_response_latency_ms=0.001
+        self.route_XY='X'
+        self.device_dist={}
+        self.device()
+        #simpy env and resource define @fangjh21.20230602
         self.env=env
         self.Analytical=Analytical
-        self.adjacency_matrix=0
-
         if not Analytical:
             self.link_resource=[]
-            self.ddr_per_die_resource={}
+            self.dram_per_tile_resource=[]
             #maybe in real system,there is one dram per die 
-            #self.dram_per_die_resource=[]
-            self.edge_dram_resource={}
+            self.dram_per_die_resource=[]
+            self.edge_dram_resource=[]
             self.__create_resource()
     def wafer_info(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             print('----------wafer-scale infomation----------')
-            print('2D mesh {}:{}x{},{}x{}'.format(self.wafer_name,self.die_shape[0],self.die_shape[1],self.tile_shape[0],self.tile_shape[1]))
+            print('2D mesh {}:{}x{},{}x{}'.format(self.wafer_name,self.tile_inter_shape[0],self.tile_inter_shape[1],self.tile_intra_shape[0],self.tile_intra_shape[1]))
             return func(self, *args, **kwargs)
         return wrapper
-    def device_list(self):
-        x0=self.tile_shape[0]
-        x1=self.die_shape[0]
-        y0=self.tile_shape[1]
-        y1=self.die_shape[1]
-        return [i for i in range(x1*x0*y1*y0)]
+    def pos_trans(self,pos_1,pos_2=None):
+        #(x1,y1,x0,y0)
+        #(x,y) 
+        pos4p=len(pos_1)==4
+        pos2p=len(pos_1)==2
+        tiles_id=[]
+        assert(pos4p or pos2p)
+        x0=self.tile_intra_shape[0]
+        x1=self.tile_inter_shape[0]
+        y0=self.tile_intra_shape[1]
+        y1=self.tile_inter_shape[1]
+        if pos4p:
+            x_pos_1=x0*pos_1[0]+pos_1[2]
+            y_pos_1=y0*pos_1[1]+pos_1[3]
+            #print(x_pos_1,y_pos_1)
+            if pos_2!=None:
+                x_pos_2=x0*pos_2[0]+pos_2[2]
+                y_pos_2=y0*pos_2[1]+pos_2[3]
+                #print(x_pos_2,y_pos_2)
+                assert (x_pos_1<=x_pos_2 and y_pos_1<=y_pos_2)
+                for x in range(x_pos_1,x_pos_2+1):
+                        for y in range(y_pos_1,y_pos_2+1):
+                            tiles_id.append(x*y0*y1+y)                
+            else:
+                assert(x_pos_1<x1*x0 and y_pos_1<y1*y0)
+                tiles_id.append(x_pos_1*y0*y1+y_pos_1)
+        elif pos2p:
+            if pos_2!=None:
+                assert (pos_1[0]<=pos_2[0] and pos_1[1]<=pos_2[1])
+                for x in range(pos_1[0],pos_2[0]+1):
+                        for y in range(pos_1[1],pos_2[1]+1):
+                            tiles_id.append(x*y0*y1+y)                
+            else:
+                assert(pos_1[0]<x1*x0 and pos_1[1]<y1*y0)
+                tiles_id.append(pos_1[0]*y0*y1+pos_1[1])
+        return tiles_id
+    def device(self):
+        x0=self.tile_intra_shape[0]
+        x1=self.tile_inter_shape[0]
+        y0=self.tile_intra_shape[1]
+        y1=self.tile_inter_shape[1]
+        if self.device_dist=={}:
+            for xj in range(x1):
+                for xi in range(x0):
+                    for yj in range(y1):
+                        for yi in range(y0):
+                            z=yj+xj*y1
+                            if z  not in  self.device_dist:
+                                self.device_dist[z]=[]
+                            i=yi+yj*y0+xi*y1*y0+xj*y0*y1*x0
+                            self.device_dist[z].append(i)
+        return [i for i in range(x0*x1*y0*y1)]
     @wafer_info
     def __create_resource(self):
-        x0=self.tile_shape[0]
-        x1=self.die_shape[0]
-        y0=self.tile_shape[1]
-        y1=self.die_shape[1]
-        #TODO
-        #self.adjacency_matrix=np.zeros(x1*x0*y1*y0,x1*x0*y1*y0)
-        for yy1 in range(y1):
-            for xx1 in range(x1):
-                for yy0 in range(y0):
-                    for xx0 in range(x0):
-                        i=xx0+yy0*x0+xx1*y0*x0+x1*y0*x0*yy1 
-                        bw_left=   self.tile_noc_bw_GB
-                        bw_right=   self.tile_noc_bw_GB
-                        bw_up=   self.tile_noc_bw_GB
-                        bw_down=   self.tile_noc_bw_GB 
-
-                        if xx0==0:
-                            if yy0==0:
-                                bw_left=self.die_noc_bw_GB
-                                bw_up=self.die_noc_bw_GB
-                            elif yy0==y0-1:
-                                bw_right=self.die_noc_bw_GB
-                                bw_up=self.die_noc_bw_GB
-                            else:
-                                bw_up=0
-                        elif xx0==x0-1:
-                            if yy0==0:
-                                bw_left=self.die_noc_bw_GB
-                                bw_down=self.die_noc_bw_GB
-                            elif yy0==y0-1:
-                                bw_right=self.die_noc_bw_GB
-                                bw_down=self.die_noc_bw_GB
-                            else:
-                                bw_down=0
-                        else:
-                            if yy0==0:
-                                if self.with_dram_per_die:
-                                    bw_left=0# to ddr on chip left
-                                    self.ddr_per_die_resource.append(dram_model('LPDDR',self.env,i,self.die_dram_bw_GB,self.die_dram_cap_GB))
-                            elif yy0==y0-1:
-                                if self.with_dram_per_die:
-                                    bw_right=0 # to ddr on chip right
-                                    self.ddr_per_die_resource.append(dram_model('LPDDR',self.env,i,self.die_dram_bw_GB,self.die_dram_cap_GB))
-                            else:
-                                pass
-                        self.link_resource.append(Router_Link(self.env,i,[bw_left,bw_right,bw_up,bw_down],0))
-                      
+        x0=self.tile_intra_shape[0]
+        x1=self.tile_inter_shape[0]
+        y0=self.tile_intra_shape[1]
+        y1=self.tile_inter_shape[1]
+        #here I define the noc link is occupied by only one process until the process release it.
+        for _ in range(y0*y1-1):
+            for _ in range(x0*x1):
+                self.link_resource.append(Resource(self.env,capacity=1))
+        for _ in range(y0*y1):
+            for _ in range(x0*x1-1):
+                self.link_resource.append(Resource(self.env,capacity=1))
+        print('noc link resource is created...')
         for _ in range(x1):
             self.edge_dram_resource.append(dram_model('DDR',self.env,self.edge_die_dram_bw_GB))#left dram
         for _ in range(x1):
             self.edge_dram_resource.append(dram_model('DDR',self.env,self.edge_die_dram_bw_GB))#right dram
         print('edge dram resource is created...')
 
+        if self.with_dram_per_tile:
+            tile_dram_num=x1*x0*y1*y0
+            for _ in range(tile_dram_num):
+                self.dram_per_tile_resource.append(dram_model('3DDRAM',self.env,self.tile_dram_bw_GB,self.tile_dram_capacity_GB))
+            print('tile dram resource is created...')
     def Manhattan_hops(self,src_id,dis_id):
-        x=self.tile_shape[0]*self.die_shape[0]
-        y=self.die_shape[1]*self.tile_shape[1]
+        x=self.tile_intra_shape[0]*self.tile_inter_shape[0]
+        y=self.tile_inter_shape[1]*self.tile_intra_shape[1]
         min_id=min(src_id,dis_id)
         max_id=max(src_id,dis_id)
         res=max_id-min_id
@@ -210,13 +197,11 @@ class Wafer_Device():
             return (res%y)+(res//y)
         else:
             return (min_id% y)-(max_id % y)+(max_id//y)
-
-
     def route_gen(self,src_id,des_id,DEBUG_MODE=True):
-        x=self.tile_shape[0]*self.die_shape[0]
-        y=self.die_shape[1]*self.tile_shape[1]
+        x=self.tile_intra_shape[0]*self.tile_inter_shape[0]
+        y=self.tile_inter_shape[1]*self.tile_intra_shape[1]
         assert src_id != des_id, "Source and destination IDs must be different"
-        assert 0 <= des_id < (x * y), "Destination ID out of range"
+        assert 0 <= des_id < (x * y), "Destination ID {} out of range".format(des_id)
         route_list =[src_id]
         if self.route_XY=='X':
             while(src_id!=des_id):
@@ -233,10 +218,10 @@ class Wafer_Device():
         #    print('Router_List:{}'.format(list))
         return route_list 
     def link_gen(self,src_id,des_id,DEBUG_MODE=False):
-        x0=self.tile_shape[0]
-        x1=self.die_shape[0]
-        y0=self.tile_shape[1]
-        y1=self.die_shape[1]
+        x0=self.tile_intra_shape[0]
+        x1=self.tile_inter_shape[0]
+        y0=self.tile_intra_shape[1]
+        y1=self.tile_inter_shape[1]
         Y_OFFSET=(y0*y1-1)*x0*x1
         route_list=self.route_gen(src_id,des_id,DEBUG_MODE=DEBUG_MODE)
         distence=len(route_list)
@@ -255,10 +240,10 @@ class Wafer_Device():
                 raise NotImplemented
         return link_list
     def is_inter_link(self,link_id):
-        x0=self.tile_shape[0]
-        x1=self.die_shape[0]
-        y0=self.tile_shape[1]
-        y1=self.die_shape[1]
+        x0=self.tile_intra_shape[0]
+        x1=self.tile_inter_shape[0]
+        y0=self.tile_intra_shape[1]
+        y1=self.tile_inter_shape[1]
         Y_OFFSET=(x0*x1-1)*y0*y1
         if link_id<Y_OFFSET:
             if (link_id +1) % x0==0:
@@ -272,27 +257,31 @@ class Wafer_Device():
             else:
                 return False
     def noc_process(self,comm_size_MB,src_id,des_id,task_id=1,DEBUG_MODE=False):
-        assert(src_id!=des_id)
+        assert src_id!=des_id,'src_id({})!=des_id({})'.format(src_id,des_id)
         ListID=self.link_gen(src_id,des_id,DEBUG_MODE)
+        #print(src_id,des_id,ListID)
+        first_hop=True
         while(True):
             for i in ListID:
-                if not self.Analytical:
-                    with self.link_resource[i].request() as req: 
-                        yield req
-                        if self.is_inter_link(i):
-                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.die_noc_bw_GB)
-                        else:
-                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_noc_bw_GB)
+                time_ms=self.noc_response_latency_ms
+                if self.is_inter_link(i):
+                    if first_hop:
+                        time_ms+=comm_size_MB/self.tile_inter_noc_bw_GB
                 else:
-                    if self.is_inter_link(i):
-                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.die_noc_bw_GB)
-                    else:
-                            yield self.env.timeout(self.noc_response_latency_ms+comm_size_MB/self.tile_noc_bw_GB)
+                    if first_hop:
+                        time_ms+=comm_size_MB/self.tile_intra_noc_bw_GB
+                if not self.Analytical:
+                    with self.link_resource[i].request() as req:
+                        yield req
+                        yield self.env.timeout(time_ms)
+                else:
+                    yield self.env.timeout(time_ms)
+                first_hop=False
             break
     def edge_dram_write_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
         #TODO 
-        x1=self.die_shape[0]
-        y=self.tile_shape[1]*self.die_shape[1]
+        x1=self.tile_inter_shape[0]
+        y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
         row_line=int(src_id /y)+1
         des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
         while(True):
@@ -304,14 +293,14 @@ class Wafer_Device():
                 dram_index=int(des_id/y) if (des_id % y)  ==0 else int(des_id/ y)+x1
                 yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
             else:
-                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.die_dram_bw_GB)    
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.tile_dram_bw_GB)    
             #if DEBUG_MODE:
             #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
     def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=True):
-        x1=self.die_shape[0]
-        x0=self.tile_shape[0]
-        y=self.tile_shape[1]*self.die_shape[1]
+        x1=self.tile_inter_shape[0]
+        x0=self.tile_intra_shape[0]
+        y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
         row_line=int(src_id /y)+1
         des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
         while(True):
@@ -336,12 +325,12 @@ class Wafer_Device():
             break
     def tile_dram_access_process(self,access_size_MB,src_id,task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         while(True):
-            assert(self.with_dram_per_die)
+            assert(self.with_dram_per_tile)
             if not self.Analytical:
-                yield self.env.process(self.ddr_per_die_resource[src_id].access_process\
+                yield self.env.process(self.dram_per_tile_resource[src_id].access_process\
                                     (access_size_MB,task_id=task_id,write=WRITE,DEBUG_MODE=DEBUG_MODE))
             else:
-                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.die_dram_bw_GB)
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.tile_dram_bw_GB)
             break
     def tile_dram_group_access_process(self,access_size_MB,group_id:List[int],task_id='3DDRAM-TEST',WRITE=True,DEBUG_MODE=False):
         for id in group_id:
@@ -456,35 +445,35 @@ class Wafer_Device():
         if res_type=='all':
             for index,res in enumerate(self.edge_dram_resource):
                 visualize_resource(res.access_resource.data,path+'edge_dram',str(index),max_resource=self.edge_die_dram_bw_GB)
-            for index,res in enumerate(self.ddr_per_die_resource):
-                visualize_resource(res.access_resource.data,path+'3ddram',str(index),max_resource=self.die_dram_bw_GB)
+            for index,res in enumerate(self.dram_per_tile_resource):
+                visualize_resource(res.access_resource.data,path+'3ddram',str(index),max_resource=self.tile_dram_bw_GB)
             path1=path+'inter_noc'
             path2=path+'intra_noc'
             for index,res in enumerate(self.link_resource):
                 if self.is_inter_link(index):
-                    visualize_resource(res.data,path1,str(index),max_resource=self.die_noc_bw_GB)
+                    visualize_resource(res.data,path1,str(index),max_resource=self.tile_inter_noc_bw_GB)
                 else:
-                    visualize_resource(res.data,path2,str(index),max_resource=self.tile_noc_bw_GB)
+                    visualize_resource(res.data,path2,str(index),max_resource=self.tile_intra_noc_bw_GB)
         elif res_type=='edge_dram':
             for index,res in enumerate(self.edge_dram_resource):
                 visualize_resource(res.access_resource.data,path+'edge_dram',str(index),max_resource=self.edge_die_dram_bw_GB)
         elif res_type=='3ddram':
-            for index,res in enumerate(self.ddr_per_die_resource):
-                visualize_resource(res.access_resource.data,path+'3ddram',str(index),max_resource=self.die_dram_bw_GB)
+            for index,res in enumerate(self.dram_per_tile_resource):
+                visualize_resource(res.access_resource.data,path+'3ddram',str(index),max_resource=self.tile_dram_bw_GB)
         elif res_type=='noc' :
             path1=path+'inter_noc'
             path2=path+'intra_noc'
             for index,res in enumerate(self.link_resource):
                 if self.is_inter_link(index):
-                    visualize_resource(res.data,path1,str(index),max_resource=self.die_noc_bw_GB)
+                    visualize_resource(res.data,path1,str(index),max_resource=self.tile_inter_noc_bw_GB)
                 else:
-                    visualize_resource(res.data,path2,str(index),max_resource=self.tile_noc_bw_GB)
+                    visualize_resource(res.data,path2,str(index),max_resource=self.tile_intra_noc_bw_GB)
         else:
             raise NotImplementedError
 if __name__ == '__main__':
     Debug=True
     env = simpy.Environment()
-    wd=Wafer_Device(env,die_shape=[4,4],tile_shape=[4,4],with_dram_per_die=True,Analytical=True)
+    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_dram_per_tile=True,Analytical=True)
     '''
     env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))

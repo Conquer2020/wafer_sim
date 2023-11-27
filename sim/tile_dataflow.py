@@ -178,10 +178,10 @@ class Tile():# for compute process
                     pass
                 else:
                     pass
-    def mapping_analysis(self,stage_info,device:List[int],op_list:List[OpNode],wd1:wd):
+    def mapping_analysis(self,stage_info,device:List[int],op_list:List[OpNode],wd1:wd,train:bool):
         #init 
         #device_gp=device
-        assert(self.with_dram==wd1.with_3ddram_per_tile)
+        assert(self.with_dram==wd1.with_dram_per_tile)
         self.device_id=device
         self.op_list=op_list
         self.noc=wd1
@@ -208,7 +208,9 @@ class Tile():# for compute process
             acc_op_intra_act_size+=op.intra_act_size_m*self.act_bytes
             #print('1',acc_op_intra_act_size)
         act_times_coe=0
-        if pipe_strategy==pipe_strategy.GPipe:
+        if not train:
+            pass
+        elif pipe_strategy==pipe_strategy.GPipe:
             act_times_coe=info1
         elif pipe_strategy==pipe_strategy.Cerebras:
             act_times_coe=2*(info2-info1)
@@ -248,8 +250,8 @@ class Tile():# for compute process
                     recomputes2=recompute_strategy.all
                     tiledram3=store_strategy.none
                     edgedram4=store_strategy.ACT_weight
-        elif mem_occupy_by_act_stage<sram_size: 
-            raise NotImplementedError
+        #elif mem_occupy_by_act_stage<sram_size: 
+        #    raise NotImplementedError
         else:
             if mem_occupy_by_wsg+mem_occupy_by_act_stage<tile_dram_size:
                 dataflow0=dataflow.WS
@@ -272,7 +274,7 @@ class Tile():# for compute process
                 edgedram4=store_strategy.ACT_weight
 
         self.map_ana=[dataflow0,sram1,recomputes2,tiledram3,edgedram4]
-        #print(self.map_ana)
+        print(self.map_ana)
         '''
         self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
         self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)
@@ -315,6 +317,9 @@ class Tile():# for compute process
         dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
         for op in self.op_list:#@fangjh21.20230609
             access_size_m=0
+            #print(op.type)
+            #print(op.ZeRO_comm_d[0])
+            #print(op.f_b_u_comm_d[0])
             param=[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm_d[0] ,None,None,None,None]
             #param[0],param[1] edge dram read
             #param[2],param[3] tile dram read

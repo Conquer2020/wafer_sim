@@ -1,0 +1,328 @@
+{
+ "graph_name":"ResNet50",
+ "root_name":"STAGE0_0",
+ "STAGE0_0":{
+  "type":"Conv2",
+  "param_dim":"[64, 3, 224, 224, 7, 2, 64]",
+  "child_nodes":"['STAGE0_1']",
+  "parent_nodes":"[]"
+ },
+ "STAGE0_1":{
+  "type":"Pool",
+  "param_dim":"[64, 3, 224, 224, 3, 2]",
+  "child_nodes":"['STAGE1_BTNK1_left0', 'STAGE1_BTNK1_right0']",
+  "parent_nodes":"['STAGE0_0']"
+ },
+ "STAGE1_BTNK1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 64, 56, 56, 1, 1, 64]",
+  "child_nodes":"['STAGE1_BTNK1_left1']",
+  "parent_nodes":"['STAGE0_1']"
+ },
+ "STAGE1_BTNK1_right0":{
+  "type":"Conv2",
+  "param_dim":"[64, 64, 56, 56, 1, 1, 256]",
+  "child_nodes":"[]",
+  "parent_nodes":"['STAGE0_1']"
+ },
+ "STAGE1_BTNK1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 64, 56, 56, 3, 1, 64]",
+  "child_nodes":"['STAGE1_BTNK1_left2']",
+  "parent_nodes":"['STAGE1_BTNK1_left0']"
+ },
+ "STAGE1_BTNK1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 64, 56, 56, 1, 1, 256]",
+  "child_nodes":"['STAGE1_BTNK2_0_left0']",
+  "parent_nodes":"['STAGE1_BTNK1_left1']"
+ },
+ "STAGE1_BTNK2_0_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 1, 64]",
+  "child_nodes":"['STAGE1_BTNK2_0_left1']",
+  "parent_nodes":"['STAGE1_BTNK1_left2']"
+ },
+ "STAGE1_BTNK2_0_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 3, 1, 64]",
+  "child_nodes":"['STAGE1_BTNK2_0_left2']",
+  "parent_nodes":"['STAGE1_BTNK2_0_left0']"
+ },
+ "STAGE1_BTNK2_0_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 1, 256]",
+  "child_nodes":"['STAGE1_BTNK2_1_left0']",
+  "parent_nodes":"['STAGE1_BTNK2_0_left1']"
+ },
+ "STAGE1_BTNK2_1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 1, 64]",
+  "child_nodes":"['STAGE1_BTNK2_1_left1']",
+  "parent_nodes":"['STAGE1_BTNK2_0_left2']"
+ },
+ "STAGE1_BTNK2_1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 3, 1, 64]",
+  "child_nodes":"['STAGE1_BTNK2_1_left2']",
+  "parent_nodes":"['STAGE1_BTNK2_1_left0']"
+ },
+ "STAGE1_BTNK2_1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 1, 256]",
+  "child_nodes":"['STAGE2_BTNK1_left0', 'STAGE2_BTNK1_right0']",
+  "parent_nodes":"['STAGE1_BTNK2_1_left1']"
+ },
+ "STAGE2_BTNK1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 2, 128]",
+  "child_nodes":"['STAGE2_BTNK1_left1']",
+  "parent_nodes":"['STAGE1_BTNK2_1_left2']"
+ },
+ "STAGE2_BTNK1_right0":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 2, 512]",
+  "child_nodes":"[]",
+  "parent_nodes":"['STAGE1_BTNK2_1_left2']"
+ },
+ "STAGE2_BTNK1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 3, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK1_left2']",
+  "parent_nodes":"['STAGE2_BTNK1_left0']"
+ },
+ "STAGE2_BTNK1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 1, 512]",
+  "child_nodes":"['STAGE2_BTNK2_0_left0']",
+  "parent_nodes":"['STAGE2_BTNK1_left1']"
+ },
+ "STAGE2_BTNK2_0_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK2_0_left1']",
+  "parent_nodes":"['STAGE2_BTNK1_left2']"
+ },
+ "STAGE2_BTNK2_0_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK2_0_left2']",
+  "parent_nodes":"['STAGE2_BTNK2_0_left0']"
+ },
+ "STAGE2_BTNK2_0_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE2_BTNK2_1_left0']",
+  "parent_nodes":"['STAGE2_BTNK2_0_left1']"
+ },
+ "STAGE2_BTNK2_1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK2_1_left1']",
+  "parent_nodes":"['STAGE2_BTNK2_0_left2']"
+ },
+ "STAGE2_BTNK2_1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK2_1_left2']",
+  "parent_nodes":"['STAGE2_BTNK2_1_left0']"
+ },
+ "STAGE2_BTNK2_1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE2_BTNK2_2_left0']",
+  "parent_nodes":"['STAGE2_BTNK2_1_left1']"
+ },
+ "STAGE2_BTNK2_2_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK2_2_left1']",
+  "parent_nodes":"['STAGE2_BTNK2_1_left2']"
+ },
+ "STAGE2_BTNK2_2_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE2_BTNK2_2_left2']",
+  "parent_nodes":"['STAGE2_BTNK2_2_left0']"
+ },
+ "STAGE2_BTNK2_2_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE3_BTNK1_left0', 'STAGE3_BTNK1_right0']",
+  "parent_nodes":"['STAGE2_BTNK2_2_left1']"
+ },
+ "STAGE3_BTNK1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 2, 128]",
+  "child_nodes":"['STAGE3_BTNK1_left1']",
+  "parent_nodes":"['STAGE2_BTNK2_2_left2']"
+ },
+ "STAGE3_BTNK1_right0":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 2, 512]",
+  "child_nodes":"[]",
+  "parent_nodes":"['STAGE2_BTNK2_2_left2']"
+ },
+ "STAGE3_BTNK1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 3, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK1_left2']",
+  "parent_nodes":"['STAGE3_BTNK1_left0']"
+ },
+ "STAGE3_BTNK1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 256, 56, 56, 1, 1, 512]",
+  "child_nodes":"['STAGE3_BTNK2_0_left0']",
+  "parent_nodes":"['STAGE3_BTNK1_left1']"
+ },
+ "STAGE3_BTNK2_0_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_0_left1']",
+  "parent_nodes":"['STAGE3_BTNK1_left2']"
+ },
+ "STAGE3_BTNK2_0_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_0_left2']",
+  "parent_nodes":"['STAGE3_BTNK2_0_left0']"
+ },
+ "STAGE3_BTNK2_0_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE3_BTNK2_1_left0']",
+  "parent_nodes":"['STAGE3_BTNK2_0_left1']"
+ },
+ "STAGE3_BTNK2_1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_1_left1']",
+  "parent_nodes":"['STAGE3_BTNK2_0_left2']"
+ },
+ "STAGE3_BTNK2_1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_1_left2']",
+  "parent_nodes":"['STAGE3_BTNK2_1_left0']"
+ },
+ "STAGE3_BTNK2_1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE3_BTNK2_2_left0']",
+  "parent_nodes":"['STAGE3_BTNK2_1_left1']"
+ },
+ "STAGE3_BTNK2_2_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_2_left1']",
+  "parent_nodes":"['STAGE3_BTNK2_1_left2']"
+ },
+ "STAGE3_BTNK2_2_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_2_left2']",
+  "parent_nodes":"['STAGE3_BTNK2_2_left0']"
+ },
+ "STAGE3_BTNK2_2_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE3_BTNK2_3_left0']",
+  "parent_nodes":"['STAGE3_BTNK2_2_left1']"
+ },
+ "STAGE3_BTNK2_3_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_3_left1']",
+  "parent_nodes":"['STAGE3_BTNK2_2_left2']"
+ },
+ "STAGE3_BTNK2_3_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_3_left2']",
+  "parent_nodes":"['STAGE3_BTNK2_3_left0']"
+ },
+ "STAGE3_BTNK2_3_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE3_BTNK2_4_left0']",
+  "parent_nodes":"['STAGE3_BTNK2_3_left1']"
+ },
+ "STAGE3_BTNK2_4_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_4_left1']",
+  "parent_nodes":"['STAGE3_BTNK2_3_left2']"
+ },
+ "STAGE3_BTNK2_4_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 3, 1, 128]",
+  "child_nodes":"['STAGE3_BTNK2_4_left2']",
+  "parent_nodes":"['STAGE3_BTNK2_4_left0']"
+ },
+ "STAGE3_BTNK2_4_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 512, 28, 28, 1, 1, 512]",
+  "child_nodes":"['STAGE4_BTNK1_left0', 'STAGE4_BTNK1_right0']",
+  "parent_nodes":"['STAGE3_BTNK2_4_left1']"
+ },
+ "STAGE4_BTNK1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 1024, 14, 14, 1, 2, 512]",
+  "child_nodes":"['STAGE4_BTNK1_left1']",
+  "parent_nodes":"['STAGE3_BTNK2_4_left2']"
+ },
+ "STAGE4_BTNK1_right0":{
+  "type":"Conv2",
+  "param_dim":"[64, 1024, 14, 14, 1, 2, 2048]",
+  "child_nodes":"[]",
+  "parent_nodes":"['STAGE3_BTNK2_4_left2']"
+ },
+ "STAGE4_BTNK1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 1024, 14, 14, 3, 1, 512]",
+  "child_nodes":"['STAGE4_BTNK1_left2']",
+  "parent_nodes":"['STAGE4_BTNK1_left0']"
+ },
+ "STAGE4_BTNK1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 1024, 14, 14, 1, 1, 2048]",
+  "child_nodes":"['STAGE4_BTNK2_0_left0']",
+  "parent_nodes":"['STAGE4_BTNK1_left1']"
+ },
+ "STAGE4_BTNK2_0_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 2048, 7, 7, 1, 1, 512]",
+  "child_nodes":"['STAGE4_BTNK2_0_left1']",
+  "parent_nodes":"['STAGE4_BTNK1_left2']"
+ },
+ "STAGE4_BTNK2_0_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 2048, 7, 7, 3, 1, 512]",
+  "child_nodes":"['STAGE4_BTNK2_0_left2']",
+  "parent_nodes":"['STAGE4_BTNK2_0_left0']"
+ },
+ "STAGE4_BTNK2_0_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 2048, 7, 7, 1, 1, 2048]",
+  "child_nodes":"['STAGE4_BTNK2_1_left0']",
+  "parent_nodes":"['STAGE4_BTNK2_0_left1']"
+ },
+ "STAGE4_BTNK2_1_left0":{
+  "type":"Conv2",
+  "param_dim":"[64, 2048, 7, 7, 1, 1, 512]",
+  "child_nodes":"['STAGE4_BTNK2_1_left1']",
+  "parent_nodes":"['STAGE4_BTNK2_0_left2']"
+ },
+ "STAGE4_BTNK2_1_left1":{
+  "type":"Conv2",
+  "param_dim":"[64, 2048, 7, 7, 3, 1, 512]",
+  "child_nodes":"['STAGE4_BTNK2_1_left2']",
+  "parent_nodes":"['STAGE4_BTNK2_1_left0']"
+ },
+ "STAGE4_BTNK2_1_left2":{
+  "type":"Conv2",
+  "param_dim":"[64, 2048, 7, 7, 1, 1, 2048]",
+  "child_nodes":"[]",
+  "parent_nodes":"['STAGE4_BTNK2_1_left1']"
+ }
+}

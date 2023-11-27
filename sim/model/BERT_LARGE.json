@@ -1,0 +1,160 @@
+{
+ "graph_name":"BERT_LARGE",
+ "root_name":"emb_3",
+ "emb_3":{
+  "type":"Embedding",
+  "param_dim":"[512, 512, 1024, 30522, 2, 512]",
+  "child_nodes":"['L0']",
+  "parent_nodes":"[]"
+ },
+ "L0":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L1']",
+  "parent_nodes":"['emb_3']"
+ },
+ "L1":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L2']",
+  "parent_nodes":"['L0']"
+ },
+ "L2":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L3']",
+  "parent_nodes":"['L1']"
+ },
+ "L3":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L4']",
+  "parent_nodes":"['L2']"
+ },
+ "L4":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L5']",
+  "parent_nodes":"['L3']"
+ },
+ "L5":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L6']",
+  "parent_nodes":"['L4']"
+ },
+ "L6":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L7']",
+  "parent_nodes":"['L5']"
+ },
+ "L7":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L8']",
+  "parent_nodes":"['L6']"
+ },
+ "L8":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L9']",
+  "parent_nodes":"['L7']"
+ },
+ "L9":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L10']",
+  "parent_nodes":"['L8']"
+ },
+ "L10":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L11']",
+  "parent_nodes":"['L9']"
+ },
+ "L11":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L12']",
+  "parent_nodes":"['L10']"
+ },
+ "L12":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L13']",
+  "parent_nodes":"['L11']"
+ },
+ "L13":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L14']",
+  "parent_nodes":"['L12']"
+ },
+ "L14":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L15']",
+  "parent_nodes":"['L13']"
+ },
+ "L15":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L16']",
+  "parent_nodes":"['L14']"
+ },
+ "L16":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L17']",
+  "parent_nodes":"['L15']"
+ },
+ "L17":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L18']",
+  "parent_nodes":"['L16']"
+ },
+ "L18":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L19']",
+  "parent_nodes":"['L17']"
+ },
+ "L19":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L20']",
+  "parent_nodes":"['L18']"
+ },
+ "L20":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L21']",
+  "parent_nodes":"['L19']"
+ },
+ "L21":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L22']",
+  "parent_nodes":"['L20']"
+ },
+ "L22":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['L23']",
+  "parent_nodes":"['L21']"
+ },
+ "L23":{
+  "type":"Transformer",
+  "param_dim":"[512, 512, 1024, 16]",
+  "child_nodes":"['pooler']",
+  "parent_nodes":"['L22']"
+ },
+ "pooler":{
+  "type":"Linear",
+  "param_dim":"[512, 1024, 512, 1024]",
+  "child_nodes":"[]",
+  "parent_nodes":"['L23']"
+ }
+}
