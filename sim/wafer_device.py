@@ -375,7 +375,7 @@ class Wafer_Device():
         chunk_size=comm_size/group_size
         #if DEBUG_MODE:
         #        print("ALL_REDUCE task {} start @ {:.3f} ms".format(task_id,self.env.now))
-        #t_last=self.env.now
+        t_last=self.env.now
         for i in range(group_size-1):
             event_list=[]
             for id_idx in range(group_size-1):
@@ -394,7 +394,7 @@ class Wafer_Device():
             #    print('All-Gather {}/{} phase'.format(i+1,group_size-1))
         #if DEBUG_MODE:
             #    print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
-        #print("ALL_REDUCE task {} end with {:.3f} ms".format(task_id,self.env.now-t_last))
+        print("ALL_REDUCE task {} end with {:.3f} ms".format(task_id,self.env.now-t_last))
         
     def ALL_2_ALL_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
         # TODO 完成通信原语及其优化
@@ -473,7 +473,7 @@ class Wafer_Device():
 if __name__ == '__main__':
     Debug=True
     env = simpy.Environment()
-    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[4,4],with_dram_per_tile=True,Analytical=True)
+    wd=Wafer_Device(env,tile_inter_shape=[2,2],tile_intra_shape=[1,1],tile_intra_noc_bw_GB=150,tile_inter_noc_bw_GB=150*0.8,with_dram_per_tile=True,Analytical=True)
     '''
     env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))
@@ -486,7 +486,7 @@ if __name__ == '__main__':
     env.process(wd.STAGE_PASS_process(10,[0,1,2,3,5],[8,9],'TEST'))
     '''
     #env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
-    env.process(wd.edge_dram_read_process(100,7))
-    env.process(wd.edge_dram_read_process(100,8))
+    env.process(wd.ALL_REDUCE_process(comm_size=1500,group_id=[0,1,3,2],task_id='ALL_REDUCE_process'))
     env.run(until=10000)
+
  

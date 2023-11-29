@@ -2,7 +2,6 @@ from comp_graph import CompGraph,OpNode
 from ML import *
 
 def GPT3_Gen(path='model',L=96,B=1564,S=2048,H=12288,A=96):
-    #L,B,S,H,A=L,B,S,H,A
     ops=[]
     gp=CompGraph(name='GPT3')
     for i in range(L):
@@ -13,6 +12,31 @@ def GPT3_Gen(path='model',L=96,B=1564,S=2048,H=12288,A=96):
         else:
             gp.AddEdge(ops[i],ops[i-1])
     CompGraph.gwrite(gp,path=path,name='GPT3')
+def Tranformer_Gen(path='model'):
+    #L,B,S,H,A=L,B,S,H,A
+    Model_size_L=['145B','310B','530B','1T',]
+    for Model_size  in Model_size_L:
+        if Model_size=='145B':
+            L,B,S,H,A=1,1,1,1,1
+        elif Model_size=='310B':
+            L,B,S,H,A=1,1,1,1,1
+        elif Model_size=='530B':
+            L,B,S,H,A=1,1,1,1,1
+        elif Model_size=='1T':
+            L,B,S,H,A=1,1,1,1,1
+        else:
+            raise NotImplementedError
+        ops=[]
+        name='T_'+Model_size
+        gp=CompGraph(name=name)
+        for i in range(L):
+            hint='t'+str(i)
+            ops.append(OpNode(op_type=OP.Transformer,op_param=[B,S,H,A],hint_name=hint))
+            if i==0:
+                gp.AddEdge(ops[i])
+            else:
+                gp.AddEdge(ops[i],ops[i-1])
+        CompGraph.gwrite(gp,path=path,name=name)
 
 def BERT_LARGE_Gen(path='model',V=30522,L=24,B=512,S=512,H=1024,A=16):
     #L,B,S,H,A=L,B,S,H,A
@@ -103,3 +127,4 @@ if __name__ == '__main__':
     BERT_LARGE_Gen()
     GPT3_Gen()
     ResNet50_Gen()
+    Tranformer_Gen()
