@@ -12,15 +12,16 @@ if __name__ == '__main__':
     network_name=model_list[0]
     assert(network_name in model_list)
     cp_bound=1
-    TP,PP,DP=8,8,24
+    TP,PP,DP=8,16,2
+    parallelism_3d=[TP,PP,DP]
     A100_CLUSTER_CFG={
         'wafer_name':'test',
         'tile_inter_shape':[PP,DP],#scale out dimension
         'tile_intra_shape':[4,2],
         'tile_intra_noc_bw_GB':600 ,
-        'tile_inter_noc_bw_GB':600 ,
-        'tile_dram_bw_GB':2039 ,
-        'tile_dram_capacity_GB':80,
+        'tile_inter_noc_bw_GB':600/8 ,
+        'tile_dram_bw_GB':2039*4*2 ,
+        'tile_dram_capacity_GB':80*4*2,
         'edge_die_dram_bw_GB':64 ,
         'clk_freq_GHz':1,
         'with_dram_per_tile':True,
@@ -31,7 +32,7 @@ if __name__ == '__main__':
         'tile_inter_shape':[PP,DP],#scale out dimension
         'tile_intra_shape':[4,2],
         'tile_intra_noc_bw_GB':600 ,
-        'tile_inter_noc_bw_GB':600 ,
+        'tile_inter_noc_bw_GB':600/8 ,
         'tile_dram_bw_GB':2039 ,#?
         'tile_dram_capacity_GB':80,#?
         'edge_die_dram_bw_GB':64 ,#?
@@ -82,10 +83,10 @@ if __name__ == '__main__':
     #read ml compute graph from json file or define ml compute graph by yourself
     #3.mapping by hand
     model=CompGraph.gread(path='model',name=network_name)
-    stgs=mp.mapping_Megatron_LM(env,model,A100_DIE_CFG,wd)  
+    stgs=mp.mapping_Megatron_LM(env,model,A100_DIE_CFG,wd,parallelism_3d)  
     batch_size=model.batch_size
     STG_NUM=len(stgs)  
-    micro_batch=1#batch_size//STG_NUM
+    micro_batch=batch_size//STG_NUM
     pipe_sim=pipe.Pipeline(
         env=env,
         mini_batch_size=batch_size,
@@ -101,7 +102,7 @@ if __name__ == '__main__':
     scale_sim_time=ONE_WEEK_MS*1000
     pipe_sim.simpy_run(until_ms=scale_sim_time)
     #6. log and info output
-    pipe_sim.status(draw_pipe=True,clear=False,write_log=True)
+    pipe_sim.status(draw_pipe=True,clear=False,write_log=False)
     #res_type='edge_dram' or '3ddram' or 'noc' or 'all'
     #if not CFG['Analytical']:
     #    wd.resource_visualize(res_type='edge_dram',clear=True)

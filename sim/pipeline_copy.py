@@ -114,17 +114,17 @@ class Pipeline():
             for i,stg in enumerate(self.stages):
                 #print( hasattr(stg,"up_state"))
                 yield self.env.process(stg.up_state(self.noc,c_type=ML_STATE.FORWARD,wait=1e-15))
-                if self.strategy==pipe_strategy.Megatron1F1B:
+                if self.strategy==pipe_strategy.Megatron1F1B and self.train:
                     if i==self.stage_num-2:
                         yield self.reg[i].put(1)
                     else :
                         self.reg[i].put(1)
-                elif self.strategy==pipe_strategy.GPipe:
+                elif self.strategy==pipe_strategy.GPipe or not self.train:
                     if i==self.stage_num-1:
                         self.cur_fd_times+=1
                     #print('self.cur_time',self.cur_time)
                     if self.cur_fd_times==times:
-                        self.one_fd_finish.put(1)
+                            self.one_fd_finish.put(1)
                         #print('self.one_fd_finish.put(1)',self.cur_fd_times)   
                 else:
                     raise NotImplementedError        
@@ -226,7 +226,10 @@ class Pipeline():
                 os.remove(f_path)
         if write_log:
             with open(path+name_log, 'w') as f:
-                f.write(str(all_trace))
+                for i in range(len(all_trace)):
+                    f.write(str(all_trace[i]))
+                    f.write('\n')
+
         if draw_pipe:
             draw_pipeline(all_trace,path=path,title=title,throughout=self.mini_batch/endtime_secs,name=name)
         print('{} ML {} pipeline endtime {:.4f} days [{:.4f}s]'.format(title,exe_mode,endtime_days,endtime_secs))
