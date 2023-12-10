@@ -14,16 +14,22 @@ def GPT3_Gen(path='model',L=96,B=1564,S=2048,H=12288,A=96):
     CompGraph.gwrite(gp,path=path,name='GPT3')
 def Tranformer_Gen(path='model'):
     #L,B,S,H,A=L,B,S,H,A
-    Model_size_L=['145B','310B','530B','1T',]
+    Model_size_L=['18B','39B','76B','145B','310B','530B','1T',]
     for Model_size  in Model_size_L:
-        if Model_size=='145B':
-            L,B,S,H,A=1,1,1,1,1
+        if Model_size=='18B':
+            L,B,S,H,A=40,1024,2048,6144,48
+        elif Model_size=='39B':
+            L,B,S,H,A=48,1536,2048,8192,64
+        elif Model_size=='76B':
+            L,B,S,H,A=60,1792,2048,10240,80
+        elif Model_size=='145B':
+            L,B,S,H,A=80,2304,2048,12288,96
         elif Model_size=='310B':
-            L,B,S,H,A=1,1,1,1,1
+            L,B,S,H,A=96,2160,2048,16384,128
         elif Model_size=='530B':
-            L,B,S,H,A=1,1,1,1,1
+            L,B,S,H,A=105,2520,2048,20480,128
         elif Model_size=='1T':
-            L,B,S,H,A=1,1,1,1,1
+            L,B,S,H,A=160,3072,2048,25600,160
         else:
             raise NotImplementedError
         ops=[]

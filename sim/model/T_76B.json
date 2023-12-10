@@ -1,0 +1,364 @@
+{
+ "graph_name":"T_76B",
+ "root_name":"t0",
+ "t0":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t1']",
+  "parent_nodes":"[]"
+ },
+ "t1":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t2']",
+  "parent_nodes":"['t0']"
+ },
+ "t2":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t3']",
+  "parent_nodes":"['t1']"
+ },
+ "t3":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t4']",
+  "parent_nodes":"['t2']"
+ },
+ "t4":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t5']",
+  "parent_nodes":"['t3']"
+ },
+ "t5":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t6']",
+  "parent_nodes":"['t4']"
+ },
+ "t6":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t7']",
+  "parent_nodes":"['t5']"
+ },
+ "t7":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t8']",
+  "parent_nodes":"['t6']"
+ },
+ "t8":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t9']",
+  "parent_nodes":"['t7']"
+ },
+ "t9":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t10']",
+  "parent_nodes":"['t8']"
+ },
+ "t10":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t11']",
+  "parent_nodes":"['t9']"
+ },
+ "t11":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t12']",
+  "parent_nodes":"['t10']"
+ },
+ "t12":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t13']",
+  "parent_nodes":"['t11']"
+ },
+ "t13":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t14']",
+  "parent_nodes":"['t12']"
+ },
+ "t14":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t15']",
+  "parent_nodes":"['t13']"
+ },
+ "t15":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t16']",
+  "parent_nodes":"['t14']"
+ },
+ "t16":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t17']",
+  "parent_nodes":"['t15']"
+ },
+ "t17":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t18']",
+  "parent_nodes":"['t16']"
+ },
+ "t18":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t19']",
+  "parent_nodes":"['t17']"
+ },
+ "t19":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t20']",
+  "parent_nodes":"['t18']"
+ },
+ "t20":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t21']",
+  "parent_nodes":"['t19']"
+ },
+ "t21":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t22']",
+  "parent_nodes":"['t20']"
+ },
+ "t22":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t23']",
+  "parent_nodes":"['t21']"
+ },
+ "t23":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t24']",
+  "parent_nodes":"['t22']"
+ },
+ "t24":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t25']",
+  "parent_nodes":"['t23']"
+ },
+ "t25":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t26']",
+  "parent_nodes":"['t24']"
+ },
+ "t26":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t27']",
+  "parent_nodes":"['t25']"
+ },
+ "t27":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t28']",
+  "parent_nodes":"['t26']"
+ },
+ "t28":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t29']",
+  "parent_nodes":"['t27']"
+ },
+ "t29":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t30']",
+  "parent_nodes":"['t28']"
+ },
+ "t30":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t31']",
+  "parent_nodes":"['t29']"
+ },
+ "t31":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t32']",
+  "parent_nodes":"['t30']"
+ },
+ "t32":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t33']",
+  "parent_nodes":"['t31']"
+ },
+ "t33":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t34']",
+  "parent_nodes":"['t32']"
+ },
+ "t34":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t35']",
+  "parent_nodes":"['t33']"
+ },
+ "t35":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t36']",
+  "parent_nodes":"['t34']"
+ },
+ "t36":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t37']",
+  "parent_nodes":"['t35']"
+ },
+ "t37":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t38']",
+  "parent_nodes":"['t36']"
+ },
+ "t38":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t39']",
+  "parent_nodes":"['t37']"
+ },
+ "t39":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t40']",
+  "parent_nodes":"['t38']"
+ },
+ "t40":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t41']",
+  "parent_nodes":"['t39']"
+ },
+ "t41":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t42']",
+  "parent_nodes":"['t40']"
+ },
+ "t42":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t43']",
+  "parent_nodes":"['t41']"
+ },
+ "t43":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t44']",
+  "parent_nodes":"['t42']"
+ },
+ "t44":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t45']",
+  "parent_nodes":"['t43']"
+ },
+ "t45":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t46']",
+  "parent_nodes":"['t44']"
+ },
+ "t46":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t47']",
+  "parent_nodes":"['t45']"
+ },
+ "t47":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t48']",
+  "parent_nodes":"['t46']"
+ },
+ "t48":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t49']",
+  "parent_nodes":"['t47']"
+ },
+ "t49":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t50']",
+  "parent_nodes":"['t48']"
+ },
+ "t50":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t51']",
+  "parent_nodes":"['t49']"
+ },
+ "t51":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t52']",
+  "parent_nodes":"['t50']"
+ },
+ "t52":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t53']",
+  "parent_nodes":"['t51']"
+ },
+ "t53":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t54']",
+  "parent_nodes":"['t52']"
+ },
+ "t54":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t55']",
+  "parent_nodes":"['t53']"
+ },
+ "t55":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t56']",
+  "parent_nodes":"['t54']"
+ },
+ "t56":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t57']",
+  "parent_nodes":"['t55']"
+ },
+ "t57":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t58']",
+  "parent_nodes":"['t56']"
+ },
+ "t58":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"['t59']",
+  "parent_nodes":"['t57']"
+ },
+ "t59":{
+  "type":"Transformer",
+  "param_dim":"[1792, 2048, 10240, 80]",
+  "child_nodes":"[]",
+  "parent_nodes":"['t58']"
+ }
+}

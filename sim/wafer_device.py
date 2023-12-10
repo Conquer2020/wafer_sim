@@ -88,8 +88,8 @@ class Wafer_Device():
 
         self.edge_die_dram_bw_GB=edge_die_dram_bw_GB
         self.clk_freq_GHz=clk_freq_GHz
-        self.noc_response_latency_ms=0.001
-        self.dram_response_latency_ms=0.001
+        self.noc_response_latency_ms=0.000001
+        self.dram_response_latency_ms=0.000001
         self.route_XY='X'
         self.device_dist={}
         self.device()
@@ -312,7 +312,7 @@ class Wafer_Device():
                 #print(dram_index)
                 yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
             else:
-                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.tile_dram_bw_GB)    
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.edge_die_dram_bw_GB)    
             #if DEBUG_MODE:
             #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
@@ -490,7 +490,7 @@ class Wafer_Device():
 if __name__ == '__main__':
     Debug=True
     env = simpy.Environment()
-    wd=Wafer_Device(env,tile_inter_shape=[2,2],tile_intra_shape=[1,1],tile_intra_noc_bw_GB=150,tile_inter_noc_bw_GB=150*0.8,with_dram_per_tile=True,Analytical=True)
+    wd=Wafer_Device(env,tile_inter_shape=[4,4],tile_intra_shape=[1,1],tile_intra_noc_bw_GB=150,tile_inter_noc_bw_GB=150*0.8,with_dram_per_tile=True,Analytical=False)
     '''
     env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
     env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))
@@ -503,7 +503,11 @@ if __name__ == '__main__':
     env.process(wd.STAGE_PASS_process(10,[0,1,2,3,5],[8,9],'TEST'))
     '''
     #env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
-    env.process(wd.ALL_REDUCE_process(comm_size=1500,group_id=[0,1,3,2],task_id='ALL_REDUCE_process'))
+    #env.process(wd.ALL_REDUCE_process(comm_size=1500,group_id=[0,1,3,2],task_id='ALL_REDUCE_process'))
+    env.process(wd.edge_dram_read_process(256,src_id=1,task_id=1,DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_read_process(256,src_id=0,task_id=0,DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_read_process(256,src_id=4,task_id=4,DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_read_process(256,src_id=5,task_id=5,DEBUG_MODE=Debug))
     env.run(until=10000)
 
  

@@ -9,7 +9,7 @@ class Enum(Enum):
 OP = Enum('OP', ('Linear', 'Conv2', 'Embedding', 'Softmax','LayerNorm','Transformer','Pool','Concat','Sum'))
 COMM=Enum('COMM',('NONE','ALL_REDUCE','ALL_2_ALL'))
 OPTIMIZER=Enum('OPTIMIZER',('NONE','SGD','ADAM'))
-BYTES={'NONE':0,'INT8':1,'FP16':2,'TF32':2.375,'FP32':4}
+BYTES={'NONE':0,'INT8':1,'FP16':2,'TF32':2.375,'FP32':4,'FP64':5}
 ML_STATE=Enum('ML_STATE',('FORWARD','BACKWARD','PARAM_SYNC'))
 dataflow=Enum('dataflow',('IS','WS','OS'))
 comp_model=Enum('comp_model',('simple','SCALE_SIM','abrupt_curve'))

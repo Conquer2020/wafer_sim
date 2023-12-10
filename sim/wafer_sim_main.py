@@ -123,7 +123,7 @@ if __name__ == '__main__':
         stages=stgs,
         noc=wd,
         pipe_type=pipe_strategy.Megatron1F1B,#pipe_strategy.GPipe#
-        train=False
+        train=True
         )
     pipe_sim.register(boost_mode=True)
     #5.simpy run  

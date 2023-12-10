@@ -8,12 +8,9 @@ from ML import *
 from comp_graph import CompGraph,OpNode
 from op_pd import CommOp
 
-class Tile():# for compute process
-    def __init__(self,env,tile_name='tx8',
-                sram_capacity_MB=3,
-                macs=4000,
-                freq_GHz=1,
-                with_dram=True,
+class GPU():# for compute process
+    def __init__(self,env,GPU_name='A100',
+                FLOPS=[1,2,3,4],#INT8,FP16,FP32,FP64
                 dram_bw_GB=12288/16/8,
                 dram_capacity_GB=6/16,
                 opt=OPTIMIZER.ADAM,
@@ -21,27 +18,10 @@ class Tile():# for compute process
                 Analytical=True
                 ) -> None:
         #info
-        self.tile_name=tile_name
-
-        #define buffer & sram size & dram_size
-        self.sram_capacity_m=sram_capacity_MB
-        self.with_dram=with_dram
+        self.GPU_name=GPU_name
         self.dram_bw=dram_bw_GB
+        self.FLOPS=FLOPS
         self.tile_dram_capacity_m=dram_capacity_GB*1000 #Mb
-        self.ifmap_size=0
-        self.weight_size=0
-        self.ofmap_size=0
-        self.max_dim=1024
-
-        #define compute 
-        self.macs=macs
-        self.array_group=[2,2]
-        self.array_shape=self.__shape_suppose(self.macs)
-        self.cp_model=comp_model.SCALE_SIM
-        self.freq=freq_GHz
-        self.dataflow=dataflow.IS
-        self.TOPS=self.macs*2*self.freq/1000
-
         self.ZeRO=ZeRO
         self.opt=opt
         # define store byte
@@ -57,18 +37,13 @@ class Tile():# for compute process
         if not self.Analytical:
             self.cp_worker= simpy.Resource(env, capacity=1)
             self.cm_worker= simpy.Resource(env, capacity=1)
+
         #mapping op
-        self.map_ana=[]
         self.device_id=[]
         self.op_list=[]
         self.noc=None
-        ''''
-        self.forward_event=[]
-        self.dloss_event=[]
-        self.recompute_event=[]
-        self.dW_event=[]
-        self.update_event=[]
-        '''
+
+
     def __set_bytes(self):
         #TODO Mixed-precision is popular in  ML training process.
         #However,many AI archs have their float numberbprecision like TF32(Nvdia),CFP16(Dojo),etc.
@@ -84,75 +59,17 @@ class Tile():# for compute process
         self.comm_bytes=BYTES['FP16']
         self.full_bytes=BYTES['FP32']
 
-    def __shape_suppose(self,size):
-        R=0
-        C=0
-        if size==8000 or size==8192:
-            R=128
-            C=64
-        if size==4000 or size==4096:
-            R=64
-            C=64
-        if size==1000 or size== 1024:
-            R=32
-            C=32
-        return [R,C]
-    def compute_cycles(self,param:List[int]):
-        '''
-        define matrix multiply [m,n,k]: (m,k)*(k,n)=(m,n)
-        SR:m SC:n T: k
-        PE array num:PR*RC
-        each PE macs units: R*C
-        #reference: https://github.com/ARM-software/SCALE-Sim
-        '''
-        assert(len(param)==3)
-        [SR,SC,T]=param
-        [R,C]=self.array_shape
-        [PR,PC]=self.array_group
-        if self.cp_model==comp_model.SCALE_SIM:
-            sr=math.ceil(SR/PR)
-            sc=math.ceil(SC/PC)
-            return (2*R+C+T-2)*math.ceil(sr/R)*math.ceil(sc/C)
-        elif self.cp_model==comp_model.simple:
-            return T*math.ceil(SR/(R*PR))*math.ceil(SC/(C*SC))
-        elif self.cp_model==comp_model.abrupt_curve:
-            cost=T*math.ceil(SR/(R*PR))*math.ceil(SC/(C*SC))
-            if SR%(PR*R)==0 and SC%(PC*C)==0:
-                cost=1.0*cost
-            elif SR%(PR*R)==0 :
-                cost=1.2*cost
-            elif SR%R==0 and SC%C==0:
-                cost=1.8*cost
-            elif SR%R==0 :
-                cost=2.0*cost
-            else:
-                cost=2.5*cost
-            return int(cost)
-        else:
-            raise NotImplementedError
-    #TODO 
-    #each tile group may process one subgraph rather than one op
-    #if there is one simple op，it is not nesscessary to use reccompute strategy
-    #@fangjh21.20230602
-
-    def tile_comp_process(self,macs_m:Union[float,List[int]]):
-        '''
-        this is the tile compute process
-        the input is macs(M) or [M,N,K] parameter
-        '''
-        if isinstance(macs_m, list):
-            exetime = self.compute_cycles(macs_m) / self.freq / 1e6  # ns to ms
-        else:
-            exetime = 2 * macs_m / self.TOPS / 1e3  # us to ms
+    def GPU_comp_process(self,macs_m:Union[float,List[int]]):
+        exetime = 2 * macs_m / self.FLOPS / 1e3  # us to ms
         if not self.Analytical:
             with self.cp_worker.request() as req:
                     yield req
                     yield self.env.timeout(exetime)
         else:
             yield self.env.timeout(exetime)            
-    def tile_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:event=event.comm,overlap=False):
+    def GPU_comm_process(self,comm_op:CommOp,wd1:wd,traffic_tpye:event=event.comm,overlap=False):
         '''
-        this is the tile communication process
+        this is the GPU communication process
         '''
         comm_mbytes=comm_op.size*self.comm_bytes
         #here if communication can not overlap by compute time,the 'cm_worker' should to be 'cp_worker'
@@ -185,102 +102,7 @@ class Tile():# for compute process
         self.device_id=device
         self.op_list=op_list
         self.noc=wd1
-        acc_op_wsg_size=0
-        acc_op_intra_act_size=0
-        #acc_op_output_act_size=0 #mulc(op_list[-1].i_shape) no store
 
-        dataflow0=dataflow.WS
-        sram1=store_strategy.cache
-        recomputes2=recompute_strategy.none
-        tiledram3=store_strategy.none
-        edgedram4=store_strategy.none
-        ZeRO=self.ZeRO
-        [pipe_strategy,info1,info2]=stage_info
-        input_act_size_m=mulc(op_list[0].i_shape)/1000/1000
-        #ouput_act_size=mulc(op_list[-1].o_shape)
-        #dram/sram allocation for each op with parallism  and recompute strategy
-        # @fangjh21.20230602
-        for op in op_list:
-            op.set_ZeRO(ZeRO)
-            #print(op)
-            temp=np.array(op.w_s_g_size_m)*np.array(self.wsg_store_bytes)
-            acc_op_wsg_size+=mulc(temp.tolist())+0 #TODO 计算所需冗余空间
-            acc_op_intra_act_size+=op.intra_act_size_m*self.act_bytes
-            #print('1',acc_op_intra_act_size)
-        act_times_coe=0
-        if not train:
-            pass
-        elif pipe_strategy==pipe_strategy.GPipe:
-            act_times_coe=info1
-        elif pipe_strategy==pipe_strategy.Cerebras:
-            act_times_coe=2*(info2-info1)
-        elif pipe_strategy==pipe_strategy.Megatron1F1B:
-            #TODO 激活生存时长不完全相符
-            act_times_coe=(info2-info1) #@fangjh21.20230602 
-        else:
-            #TODO 
-            raise NotImplementedError
-        mem_occupy_by_wsg=acc_op_wsg_size
-        mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
-        sram_size=self.sram_capacity_m #MB
-        tile_dram_size=self.tile_dram_capacity_m*1000 #MB 
-
-        if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
-            dataflow0=dataflow.WS
-            sram1=store_strategy.ACT_weight
-            recomputes2=recompute_strategy.none
-            tiledram3=store_strategy.none
-        elif mem_occupy_by_wsg<sram_size: 
-            dataflow0=dataflow.WS
-            sram1=store_strategy.weight
-            if self.with_dram:
-                assert(wd1.dram_per_tile_resource!=[])
-                if mem_occupy_by_act_stage<tile_dram_size:
-                    recomputes2=recompute_strategy.none
-                    tiledram3=store_strategy.ACT
-                else:
-                    dataflow0=dataflow.WS
-                    sram1=store_strategy.cache
-                    recomputes2=recompute_strategy.all
-                    tiledram3=store_strategy.weight
-                    edgedram4=store_strategy.ACT
-            else:
-                    dataflow0=dataflow.WS
-                    sram1=store_strategy.cache
-                    recomputes2=recompute_strategy.all
-                    tiledram3=store_strategy.none
-                    edgedram4=store_strategy.ACT_weight
-        #elif mem_occupy_by_act_stage<sram_size: 
-        #    raise NotImplementedError
-        else:
-            if mem_occupy_by_wsg+mem_occupy_by_act_stage<tile_dram_size:
-                dataflow0=dataflow.WS
-                sram1=store_strategy.cache
-                recomputes2=recompute_strategy.none
-                tiledram3=store_strategy.ACT_weight
-                edgedram4=store_strategy.none
-
-            elif mem_occupy_by_wsg<tile_dram_size:
-                dataflow0=dataflow.WS
-                sram1=store_strategy.cache
-                recomputes2=recompute_strategy.all
-                tiledram3=store_strategy.weight
-                edgedram4=store_strategy.ACT
-            else:
-                dataflow0=dataflow.IS
-                sram1=store_strategy.cache
-                recomputes2=recompute_strategy.all
-                tiledram3=store_strategy.cache
-                edgedram4=store_strategy.ACT_weight
-
-        self.map_ana=[dataflow0,sram1,recomputes2,tiledram3,edgedram4]
-        print(self.map_ana)
-        '''
-        self.analysis_forward_process(self.env,map_ana,device,op_list,wd1)
-        self.analysis_backward_process(self.env,map_ana,device,op_list,wd1)
-        self.analysis_weight_update_process(self.env,map_ana,device,op_list,wd1)
-        '''
-        return  self.map_ana
     
     def forward_process(self):
         def analysis_template_event(param=[None,None,None,None,None,None,None,None,None,None,None]):
@@ -298,13 +120,13 @@ class Tile():# for compute process
                 event_list.append(self.noc.tile_dram_group_access_process(param[3]*self.act_bytes,self.device_id,event.act_fetch,WRITE=False))
             if(param[4]!=None):
                 #ZeRO communication 
-                event_list.append(self.tile_comm_process(param[4],self.noc,event.comm))
+                event_list.append(self.GPU_comm_process(param[4],self.noc,event.comm))
             if(param[5]!=None):
                 #compute 
-                event_list.append(self.tile_comp_process(param[5]))
+                event_list.append(self.GPU_comp_process(param[5]))
             if(param[6]!=None):
                 #communication 
-                comm_event=self.tile_comm_process(param[6],self.noc,event.comm)
+                comm_event=self.GPU_comm_process(param[6],self.noc,event.comm)
             if(param[7]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[7]*self.act_bytes,self.device_id,event.act_store,WRITE=True))
             if(param[8]!=None):
@@ -314,7 +136,7 @@ class Tile():# for compute process
             if(param[10]!=None):
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[10]*self.act_bytes*len(self.device_id),group_id=self.device_id,task_id=event.act_store,gather=True))
             return event_list,comm_event
-        dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
+        dataflow0,sram1,recomputes2,GPUdram3,edgedram4=self.map_ana
         for op in self.op_list:#@fangjh21.20230609
             access_size_m=0
             #print(op.type)
@@ -322,17 +144,17 @@ class Tile():# for compute process
             #print(op.f_b_u_comm_d[0])
             param=[None,None,None,None,op.ZeRO_comm_d[0],op.fd_macs_m,op.f_b_u_comm_d[0] ,None,None,None,None]
             #param[0],param[1] edge dram read
-            #param[2],param[3] tile dram read
+            #param[2],param[3] GPU dram read
             #param[4]=op.ZeRO_comm_d[0] 
             #param[5]=op.fd_macs_m
             #param[6]=op.f_b_u_comm_d[0] 
-            #param[7],param[8] tile dram write
+            #param[7],param[8] GPU dram write
             #param[9],param[10] edge dram write
             if sram1==store_strategy.ACT_weight:
                 #ideal situation
                 pass
             elif sram1==store_strategy.ACT:
-                if tiledram3==store_strategy.weight:
+                if GPUdram3==store_strategy.weight:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             param[2]=op.w_s_g_access_m[0]                           
@@ -351,7 +173,7 @@ class Tile():# for compute process
                 else:
                     raise NotImplementedError  
             elif sram1==store_strategy.weight:
-                if tiledram3==store_strategy.ACT:
+                if GPUdram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=mulc(op.i_shape)/1000/1000
@@ -379,7 +201,7 @@ class Tile():# for compute process
                 else:
                     raise NotImplementedError
             elif sram1==store_strategy.cache:
-                if tiledram3==store_strategy.ACT_weight:
+                if GPUdram3==store_strategy.ACT_weight:
                     assert(edgedram4==store_strategy.none)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
@@ -409,10 +231,10 @@ class Tile():# for compute process
                             param[8]=mulc(op.o_shape)/1000/1000 #TODO
                         elif dataflow0==dataflow.OS:
                             raise NotImplementedError
-                elif tiledram3==store_strategy.ACT:
+                elif GPUdram3==store_strategy.ACT:
                     assert(edgedram4==store_strategy.weight and dataflow0==dataflow.WS)
                     raise NotImplementedError
-                elif tiledram3==store_strategy.weight:
+                elif GPUdram3==store_strategy.weight:
                     assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
@@ -443,7 +265,7 @@ class Tile():# for compute process
                             param[10]=mulc(op.o_shape)/1000/1000 #TODO 
                         else:
                             raise NotImplementedError           
-                elif tiledram3==store_strategy.cache:
+                elif GPUdram3==store_strategy.cache:
                     assert(edgedram4==store_strategy.ACT_weight)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
@@ -503,13 +325,13 @@ class Tile():# for compute process
                 event_list.append(self.noc.tile_dram_group_access_process(param[3]*self.act_bytes,self.device_id,event.act_fetch,WRITE=False))
             if(param[4]!=None):
                 #ZeRO communication 
-                event_list.append(self.tile_comm_process(param[4],self.noc,event.comm))
+                event_list.append(self.GPU_comm_process(param[4],self.noc,event.comm))
             if(param[5]!=None):
                 #compute 
-                event_list.append(self.tile_comp_process(param[5]))
+                event_list.append(self.GPU_comp_process(param[5]))
             if(param[6]!=None):
                 #communication 
-                comm_event=self.tile_comm_process(param[6],self.noc,event.comm)
+                comm_event=self.GPU_comm_process(param[6],self.noc,event.comm)
             if(param[7]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[7]*self.act_bytes*len(self.device_id),self.device_id,event.act_store,WRITE=True))
             if(param[8]!=None):
@@ -532,13 +354,13 @@ class Tile():# for compute process
 
             if(param[4]!=None):
                 #ZeRO communication 
-                event_list.append(self.tile_comm_process(param[4],self.noc,event.comm))
+                event_list.append(self.GPU_comm_process(param[4],self.noc,event.comm))
             if(param[5]!=None):
                 #compute 
-                event_list.append(self.tile_comp_process(param[5]))
+                event_list.append(self.GPU_comp_process(param[5]))
             if(param[6]!=None):
                 #communication 
-                comm_event=self.tile_comm_process(param[6],self.noc,event.comm)
+                comm_event=self.GPU_comm_process(param[6],self.noc,event.comm)
             if(param[7]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[7]*self.act_bytes,self.device_id,event.grad_store,WRITE=True))
             if(param[8]!=None):
@@ -564,13 +386,13 @@ class Tile():# for compute process
                 event_list.append(self.noc.tile_dram_group_access_process(param[5]*self.full_bytes,self.device_id,event.opt_load,WRITE=False))
             if(param[6]!=None):
                 #ZeRO communication 
-                event_list.append(self.tile_comm_process(param[6],self.noc,event.comm))
+                event_list.append(self.GPU_comm_process(param[6],self.noc,event.comm))
             if(param[7]!=None):
                 #compute 
-                event_list.append(self.tile_comp_process(param[7]))
+                event_list.append(self.GPU_comp_process(param[7]))
             if(param[8]!=None):
                 #communication 
-                comm_event=self.tile_comm_process(param[8],self.noc,event.comm)
+                comm_event=self.GPU_comm_process(param[8],self.noc,event.comm)
             if(param[9]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[9]*self.full_bytes,self.device_id,event.opt_store,WRITE=True))
             if(param[10]!=None):
@@ -582,7 +404,7 @@ class Tile():# for compute process
             if event_list==[]:
                 event_list=[None]
             return event_list,comm_event 
-        dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
+        dataflow0,sram1,recomputes2,GPUdram3,edgedram4=self.map_ana
 
         for op in self.op_list:
             #9,9,13
@@ -593,7 +415,7 @@ class Tile():# for compute process
                 #ideal situation
                 pass
             elif sram1==store_strategy.ACT:
-                if tiledram3==store_strategy.weight:
+                if GPUdram3==store_strategy.weight:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             re_param[2]=op.w_s_g_access_m[0]   
@@ -622,7 +444,7 @@ class Tile():# for compute process
                 else:
                     raise NotImplementedError  
             elif sram1==store_strategy.weight:
-                if tiledram3==store_strategy.ACT:
+                if GPUdram3==store_strategy.ACT:
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
                             temp_input_size_m=mulc(op.i_shape)/1000/1000
@@ -664,7 +486,7 @@ class Tile():# for compute process
                 else:
                     raise NotImplementedError
             elif sram1==store_strategy.cache:
-                if tiledram3==store_strategy.ACT_weight:
+                if GPUdram3==store_strategy.ACT_weight:
                     assert(edgedram4==store_strategy.none)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
@@ -728,10 +550,10 @@ class Tile():# for compute process
 
                         elif dataflow0==dataflow.OS:
                             raise NotImplementedError
-                elif tiledram3==store_strategy.ACT:
+                elif GPUdram3==store_strategy.ACT:
                     assert(edgedram4==store_strategy.weight and dataflow0==dataflow.WS)
                     raise NotImplementedError
-                elif tiledram3==store_strategy.weight:
+                elif GPUdram3==store_strategy.weight:
                     assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
@@ -775,7 +597,7 @@ class Tile():# for compute process
                         
                         else:
                             raise NotImplementedError           
-                elif tiledram3==store_strategy.cache:
+                elif GPUdram3==store_strategy.cache:
                     assert(edgedram4==store_strategy.ACT_weight)
                     if recomputes2==recompute_strategy.all:
                         if dataflow0==dataflow.WS:
@@ -874,46 +696,46 @@ class Tile():# for compute process
                 event_list.append(self.noc.tile_dram_group_access_process(param[3]*self.full_bytes,self.device_id,event.grad_fetch,WRITE=False))
             if(param[4]!=None):
                 #DP communication 
-                event_list.append(self.tile_comm_process(param[4],self.noc,event.comm,True))
+                event_list.append(self.GPU_comm_process(param[4],self.noc,event.comm,True))
             if(param[5]!=None):
                 event_list.append(self.noc.tile_dram_group_access_process(param[5]*self.full_bytes,self.device_id,event.wt_load,WRITE=True))
             if(param[6]!=None):
                 event_list.append(self.noc.dram_write_group_process(access_size_MB=param[6]*self.full_bytes*len(self.device_id),group_id=self.device_id,task_id=event.wt_load,gather=True))
             return event_list
-        dataflow0,sram1,recomputes2,tiledram3,edgedram4=self.map_ana
+        dataflow0,sram1,recomputes2,GPUdram3,edgedram4=self.map_ana
         for op in self.op_list:
             update_param=[None,None,None,None,op.f_b_u_comm_d[2],None,None]
             if sram1==store_strategy.ACT_weight:
                 #ideal situation
                 pass
             elif sram1==store_strategy.ACT:
-                if tiledram3==store_strategy.weight:
+                if GPUdram3==store_strategy.weight:
                     update_param[2]=1
                     update_param[3]=1
                 else:
                     raise NotImplementedError  
             elif sram1==store_strategy.weight:
-                if tiledram3==store_strategy.ACT:
+                if GPUdram3==store_strategy.ACT:
                     pass
                 else:
                     raise NotImplementedError
             elif sram1==store_strategy.cache:
-                if tiledram3==store_strategy.ACT_weight:
+                if GPUdram3==store_strategy.ACT_weight:
                     assert(edgedram4==store_strategy.none)
                     update_param[2]=op.w_s_g_access_m[0]
                     update_param[3]=op.w_s_g_access_m[1]
                     update_param[5]=op.w_s_g_access_m[0]
-                elif tiledram3==store_strategy.ACT:
+                elif GPUdram3==store_strategy.ACT:
                     assert(edgedram4==store_strategy.weight and dataflow0==dataflow.WS)
                     update_param[0]=op.w_s_g_access_m[0]
                     update_param[1]=op.w_s_g_access_m[1]
                     update_param[6]=op.w_s_g_access_m[0]
-                elif tiledram3==store_strategy.weight:
+                elif GPUdram3==store_strategy.weight:
                     assert(edgedram4==store_strategy.ACT and dataflow0==dataflow.WS)
                     update_param[2]=op.w_s_g_access_m[0]
                     update_param[3]=op.w_s_g_access_m[1]
                     update_param[5]=op.w_s_g_access_m[0]
-                elif tiledram3==store_strategy.cache:
+                elif GPUdram3==store_strategy.cache:
                     assert(edgedram4==store_strategy.ACT_weight)
                     update_param[0]=op.w_s_g_access_m[0]
                     update_param[1]=op.w_s_g_access_m[1]
@@ -923,6 +745,5 @@ class Tile():# for compute process
             events=analysis_template_event(update_param)
             execute_event=[self.env.process(event) for event in events]
             yield simpy.AllOf(self.env,execute_event)
-
     
 
