@@ -508,7 +508,7 @@ class Wafer_Device:
         access_size_MB: Union[int, List[int]],
         group_id: List[int],
         task_id,
-        multicast=True,
+        multicast=False,
     ):
         # TODO 优化
         if type(access_size_MB) is list:
@@ -2001,8 +2001,8 @@ if __name__ == "__main__":
     # validate_congestion2()
     # validate_congestion3()
     # validate_congestion4()
-    validate_congestion5()
-    # validate_congestion6()
+    #validate_congestion5()
+    validate_congestion6()
     # validate_congestion7()
     # validate_congestion8()
     # validate_congestion9()

@@ -1,28 +1,30 @@
  
 from wafer_device import Wafer_Device 
 from comp_graph import CompGraph
-import model_map as mp
+import model_map_tenstorrent as mp
 import pipeline_copy as pipe
 from ML import *
 import simpy
 if __name__ == '__main__':
     #TODO set config info by configparser
     Analytical=False
-    model_list=['GPT3','BERT_LARGE','ResNet50']
-    network_name=model_list[2]
+    tile_with_dram=True
+    model_list=['GPT3','BERT_LARGE','ResNet50','BERT_BASE']
+    network_name=model_list[3]
     assert(network_name in model_list)
     cp_bound=1
     GRAYSKULL_CFG={
         'wafer_name':'test',
         'tile_inter_shape':[1,1],#scale out dimension
         'tile_intra_shape':[10,12],
+        # 'tile_intra_noc_bw_GB':132*2,
         'tile_intra_noc_bw_GB':192*2,
-        'tile_inter_noc_bw_GB':1,
-        'tile_dram_bw_GB':100,
+        'tile_inter_noc_bw_GB':192*2,
+        'tile_dram_bw_GB':140,
         'tile_dram_capacity_GB':8,
-        'edge_die_dram_bw_GB':16*8,
+        'edge_die_dram_bw_GB':1,
         'clk_freq_GHz':1,
-        'with_dram_per_tile':True,
+        'with_dram_per_tile':tile_with_dram,
         'Analytical':Analytical
         }      
     if network_name=='GPT3':
@@ -31,14 +33,17 @@ if __name__ == '__main__':
         wafer_config=GRAYSKULL_CFG
     elif network_name=='ResNet50':
         wafer_config=GRAYSKULL_CFG
+    elif network_name=='BERT_BASE':
+        wafer_config=GRAYSKULL_CFG
     else:
         raise NotImplementedError
     GRAYSKULL_TILE_CFG={
         'tile_name':'test',
-        'sram_capacity_MB':1,
-        'macs':92/2*1000,#@FP16 
+        'sram_capacity_MB':120/120,
+        #'macs':4*92/2*1000/120,#@INT8
+        'macs':92/2*1000/120,#@FP16
         'freq_GHz':1,
-        'with_dram':True,
+        'with_dram':tile_with_dram,
         'opt':OPTIMIZER.SGD,#TODO
         'ZeRO':ZeRO_strategy.none ,#
         'Analytical':Analytical
@@ -65,13 +70,16 @@ if __name__ == '__main__':
     #3.mapping by hand
     model=CompGraph.gread(path='model',name=network_name)
     if network_name=='GPT3':
-        stgs=mp.mapping_GPT3(env,model,GRAYSKULL_TILE_CFG,wd)
+        stgs=mp.mapping_GPT3_tenstorrent(env,model,GRAYSKULL_TILE_CFG,wd)
     elif network_name=='BERT_LARGE':
-        stgs=mp.mapping_BERT_LARGE(env,model,GRAYSKULL_TILE_CFG,wd)
+        stgs=mp.mapping_BERT_LARGE_tenstorrent(env,model,GRAYSKULL_TILE_CFG,wd)
     elif network_name=='ResNet50':
         #print('00000')
-        stgs=mp.mapping_ResNet50(env,model,GRAYSKULL_TILE_CFG,wd)
+        stgs=mp.mapping_ResNet50_tenstorrent(env,model,GRAYSKULL_TILE_CFG,wd)
         #print('11111')
+    elif network_name=='BERT_BASE':
+        # print(0)
+        stgs=mp.mapping_BERT_BASE_tenstorrent(env,model,GRAYSKULL_TILE_CFG,wd)
     else:
         raise NotImplementedError
     batch_size=model.batch_size

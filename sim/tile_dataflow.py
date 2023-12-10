@@ -202,12 +202,18 @@ class Tile():# for compute process
         # @fangjh21.20230602
         for op in op_list:
             op.set_ZeRO(ZeRO)
+            w_s_g_size_m=op.w_s_g_size_m
             #print(op)
-            temp=np.array(op.w_s_g_size_m)*np.array(self.wsg_store_bytes)
-            acc_op_wsg_size+=mulc(temp.tolist())+0 #TODO 计算所需冗余空间
+            if not train:
+                w_s_g_size_m[2]=0
+                w_s_g_size_m[1]=0
+            temp=np.array(w_s_g_size_m)*np.array(self.wsg_store_bytes)
+            #print(temp)
+            acc_op_wsg_size+=sum(temp)
+            #print(acc_op_wsg_size)
             acc_op_intra_act_size+=op.intra_act_size_m*self.act_bytes
             #print('1',acc_op_intra_act_size)
-        act_times_coe=0
+        act_times_coe=1
         if not train:
             pass
         elif pipe_strategy==pipe_strategy.GPipe:
@@ -224,7 +230,8 @@ class Tile():# for compute process
         mem_occupy_by_act_stage=act_times_coe*acc_op_intra_act_size
         sram_size=self.sram_capacity_m #MB
         tile_dram_size=self.tile_dram_capacity_m*1000 #MB 
-
+        #print('mem_occupy_by_wsg',mem_occupy_by_wsg)
+        #print('mem_occupy_by_act_stage',mem_occupy_by_act_stage)
         if mem_occupy_by_wsg+mem_occupy_by_act_stage<sram_size:
             dataflow0=dataflow.WS
             sram1=store_strategy.ACT_weight
