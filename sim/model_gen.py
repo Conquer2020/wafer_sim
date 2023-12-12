@@ -14,16 +14,22 @@ def GPT3_Gen(path='model',L=96,B=1564,S=2048,H=12288,A=96):
     CompGraph.gwrite(gp,path=path,name='GPT3')
 def Tranformer_Gen(path='model'):
     #L,B,S,H,A=L,B,S,H,A
-    Model_size_L=['145B','310B','530B','1T',]
+    Model_size_L=['18B','39B','76B','145B','310B','530B','1T',]
     for Model_size  in Model_size_L:
-        if Model_size=='145B':
-            L,B,S,H,A=1,1,1,1,1
+        if Model_size=='18B':
+            L,B,S,H,A=40,1024,2048,6144,48
+        elif Model_size=='39B':
+            L,B,S,H,A=48,1536,2048,8192,64
+        elif Model_size=='76B':
+            L,B,S,H,A=60,1792,2048,10240,80
+        elif Model_size=='145B':
+            L,B,S,H,A=80,2304,2048,12288,96
         elif Model_size=='310B':
-            L,B,S,H,A=1,1,1,1,1
+            L,B,S,H,A=96,2160,2048,16384,128
         elif Model_size=='530B':
-            L,B,S,H,A=1,1,1,1,1
+            L,B,S,H,A=105,2520,2048,20480,128
         elif Model_size=='1T':
-            L,B,S,H,A=1,1,1,1,1
+            L,B,S,H,A=160,3072,2048,25600,160
         else:
             raise NotImplementedError
         ops=[]
@@ -38,8 +44,10 @@ def Tranformer_Gen(path='model'):
                 gp.AddEdge(ops[i],ops[i-1])
         CompGraph.gwrite(gp,path=path,name=name)
 
-def BERT_LARGE_Gen(path='model',V=30522,L=24,B=512,S=512,H=1024,A=16):
+def BERT_Gen(path='model'):
     #L,B,S,H,A=L,B,S,H,A
+    
+    [V,L,B,S,H,A]=[30522,24,512,512,1024,16]
     ops=[]
     gp=CompGraph(name='BERT_LARGE')
     emb=OpNode(op_type=OP.Embedding,op_param=[B,S,H,V,2,S],hint_name='emb_3')
@@ -56,6 +64,24 @@ def BERT_LARGE_Gen(path='model',V=30522,L=24,B=512,S=512,H=1024,A=16):
     #pred_linear=OpNode(op_type=OP.Linear,op_param=[B,V,S,H],hint_name='pred_linear')
     gp.AddEdge(pooler,ops[-1])
     CompGraph.gwrite(gp,path=path,name='BERT_LARGE')
+    
+    ops=[]
+    [V,L,B,S,H,A]=[30522,12,512,128,768,12]
+    gp=CompGraph(name='BERT_BASE')
+    emb=OpNode(op_type=OP.Embedding,op_param=[B,S,H,V,2,S],hint_name='emb_3')
+    gp.AddEdge(emb)
+    for i in range(L):
+        hint='L'+str(i)
+        ops.append(OpNode(op_type=OP.Transformer,op_param=[B,S,H,A],hint_name=hint))
+        #print(i)
+        if i==0:
+            gp.AddEdge(ops[i],emb)
+        else:
+            gp.AddEdge(ops[i],ops[i-1])
+    pooler=OpNode(op_type=OP.Linear,op_param=[B,H,S,H],hint_name='pooler')
+    #pred_linear=OpNode(op_type=OP.Linear,op_param=[B,V,S,H],hint_name='pred_linear')
+    gp.AddEdge(pooler,ops[-1])
+    CompGraph.gwrite(gp,path=path,name='BERT_BASE')
 
 def ResNet50_Gen(path='model',B=64,H=224,W=224,C=3):
     def BTNK1_Gen(gp,op_start,hint,B,C,W,C1,S):#S=stride
@@ -124,7 +150,7 @@ def ResNet50_Gen(path='model',B=64,H=224,W=224,C=3):
     op4=STAGE4_Gen(gp,op3,B=64,H=14,W=14,C=1024)
     CompGraph.gwrite(gp,path='model',name='ResNet50')
 if __name__ == '__main__':
-    BERT_LARGE_Gen()
+    BERT_Gen()
     GPT3_Gen()
     ResNet50_Gen()
     Tranformer_Gen()

@@ -167,6 +167,7 @@ class Pipeline():
         print('stage num={}, extute times={}'.format(len(self.stages),self.micro_batch_num))
         print('mini batch={}, micro batch={}'.format(self.mini_batch,self.micro_batch))
         self.boost_mode=boost_mode
+        self.boost_times=min(self.boost_times,self.micro_batch_num)
         times=self.boost_times if self.boost_mode else self.micro_batch_num
         #self.boost_times=1 
         def all_backward(times):

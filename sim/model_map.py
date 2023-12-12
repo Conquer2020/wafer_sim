@@ -258,7 +258,7 @@ def mapping_ResNet50(env:simpy.Environment,model:CompGraph,tile_config:dict,wd:W
 def mapping_Megatron_LM(env:simpy.Environment,model:CompGraph,tile_config:dict,wd:Wafer_Device,parallelism_3d):
     [TP,PP,DP]=parallelism_3d
     tiles_id=wd.device() 
-    print(tiles_id)
+    #print(tiles_id)
     STG_NUM=PP
     tiles=[]
     for i in range(STG_NUM):

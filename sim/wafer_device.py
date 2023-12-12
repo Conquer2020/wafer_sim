@@ -395,12 +395,9 @@ class Wafer_Device:
                     )
                 )
             else:
-                yield self.env.timeout(
-                    self.dram_response_latency_ms
-                    + access_size_MB / self.tile_dram_bw_GB
-                )
-            # if DEBUG_MODE:
-            # print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
+                yield self.env.timeout(self.dram_response_latency_ms+access_size_MB/self.edge_die_dram_bw_GB)    
+            #if DEBUG_MODE:
+            #print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
 
     def edge_dram_read_process(
