@@ -154,31 +154,33 @@ class Wafer_Device:
             return func(self, *args, **kwargs)
 
         return wrapper
-    def dpos_trans(self,device_id):
-        x0=self.tile_intra_shape[0]
-        x1=self.tile_inter_shape[0]
-        y0=self.tile_intra_shape[1]
-        y1=self.tile_inter_shape[1]
-        #i=yi+yj*y0+xi*y1*y0+xj*y0*y1*x0
-        #print(x0,x1,y0,y1,device_id)
-        xx1=device_id//(y0*y1*x0)
-        tp=device_id-xx1*y0*y1*x0
-        xx0=tp//(y1*y0)
-        tp=tp-xx0*y0*y1
-        yy1=tp//y0
-        yy0=tp% y0
-        return [xx0,xx1,yy0,yy1]
-    def pos_trans(self,pos_1,pos_2=None):
-        #(x1,y1,x0,y0)
-        #(x,y) 
-        pos4p=len(pos_1)==4
-        pos2p=len(pos_1)==2
-        tiles_id=[]
-        assert(pos4p or pos2p)
-        x0=self.tile_intra_shape[0]
-        x1=self.tile_inter_shape[0]
-        y0=self.tile_intra_shape[1]
-        y1=self.tile_inter_shape[1]
+
+    def dpos_trans(self, device_id):
+        x0 = self.tile_intra_shape[0]
+        x1 = self.tile_inter_shape[0]
+        y0 = self.tile_intra_shape[1]
+        y1 = self.tile_inter_shape[1]
+        # i=yi+yj*y0+xi*y1*y0+xj*y0*y1*x0
+        # print(x0,x1,y0,y1,device_id)
+        xx1 = device_id // (y0 * y1 * x0)
+        tp = device_id - xx1 * y0 * y1 * x0
+        xx0 = tp // (y1 * y0)
+        tp = tp - xx0 * y0 * y1
+        yy1 = tp // y0
+        yy0 = tp % y0
+        return [xx0, xx1, yy0, yy1]
+
+    def pos_trans(self, pos_1, pos_2=None):
+        # (x1,y1,x0,y0)
+        # (x,y)
+        pos4p = len(pos_1) == 4
+        pos2p = len(pos_1) == 2
+        tiles_id = []
+        assert pos4p or pos2p
+        x0 = self.tile_intra_shape[0]
+        x1 = self.tile_inter_shape[0]
+        y0 = self.tile_intra_shape[1]
+        y1 = self.tile_inter_shape[1]
         if pos4p:
             x_pos_1 = x0 * pos_1[0] + pos_1[2]
             y_pos_1 = y0 * pos_1[1] + pos_1[3]
@@ -354,17 +356,24 @@ class Wafer_Device:
                     yield self.env.timeout(time_ms)
                 first_hop = False
             break
-    def edge_dram_write_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=False):
-        #TODO 
-        x1=self.tile_inter_shape[0]
-        x0=self.tile_intra_shape[0]
-        y0=self.tile_intra_shape[1]
-        y1=self.tile_inter_shape[1]
-        y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
-        row_line=int(src_id /y)+1
-        des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
-        while(True):
-            #if DEBUG_MODE:
+
+    def edge_dram_write_process(
+        self, access_size_MB, src_id, task_id="DDR_READ_TEST", DEBUG_MODE=False
+    ):
+        # TODO
+        x1 = self.tile_inter_shape[0]
+        x0 = self.tile_intra_shape[0]
+        y0 = self.tile_intra_shape[1]
+        y1 = self.tile_inter_shape[1]
+        y = self.tile_intra_shape[1] * self.tile_inter_shape[1]
+        row_line = int(src_id / y) + 1
+        des_id = (
+            row_line * y - 1
+            if (row_line * y - 1 - src_id) < (y / 2)
+            else (row_line - 1) * y
+        )
+        while True:
+            # if DEBUG_MODE:
             #    print("task {} start dram wrtie  @ {:.3f} ms".format(task_id,self.envenv.now))
             if des_id != src_id:
                 yield self.env.process(
@@ -377,10 +386,14 @@ class Wafer_Device:
                     )
                 )
             if not self.Analytical:
-                pos=self.dpos_trans(des_id)
-                dram_index=2*pos[1]-1  if pos[3]>y1/2 else pos[1]
-                #print(dram_index)
-                yield self.env.process(self.edge_dram_resource[dram_index].access_process(access_size_MB,task_id=task_id,write=True))
+                pos = self.dpos_trans(des_id)
+                dram_index = 2 * pos[1] - 1 if pos[3] > y1 / 2 else pos[1]
+                # print(dram_index)
+                yield self.env.process(
+                    self.edge_dram_resource[dram_index].access_process(
+                        access_size_MB, task_id=task_id, write=True
+                    )
+                )
             else:
                 yield self.env.timeout(
                     self.dram_response_latency_ms
@@ -389,21 +402,28 @@ class Wafer_Device:
             # if DEBUG_MODE:
             # print("task {} end dram wrtie  @ {:.3f} ms".format(task_id,self.env.now))
             break
-    def edge_dram_read_process(self,access_size_MB,src_id,task_id='DDR_READ_TEST',DEBUG_MODE=True):
-        x1=self.tile_inter_shape[0]
-        x0=self.tile_intra_shape[0]
-        y0=self.tile_intra_shape[1]
-        y1=self.tile_inter_shape[1]
-        y=self.tile_intra_shape[1]*self.tile_inter_shape[1]
-        row_line=int(src_id /y)+1
-        des_id=row_line*y-1 if (row_line*y-1-src_id)<(y/2) else (row_line-1)*y
-        while(True):
-            #if DEBUG_MODE:
+
+    def edge_dram_read_process(
+        self, access_size_MB, src_id, task_id="DDR_READ_TEST", DEBUG_MODE=True
+    ):
+        x1 = self.tile_inter_shape[0]
+        x0 = self.tile_intra_shape[0]
+        y0 = self.tile_intra_shape[1]
+        y1 = self.tile_inter_shape[1]
+        y = self.tile_intra_shape[1] * self.tile_inter_shape[1]
+        row_line = int(src_id / y) + 1
+        des_id = (
+            row_line * y - 1
+            if (row_line * y - 1 - src_id) < (y / 2)
+            else (row_line - 1) * y
+        )
+        while True:
+            # if DEBUG_MODE:
             #    print("task {} start dram read  @ {:.3f} ms".format(task_id,self.env.now))
-            pos=self.dpos_trans(des_id)
-            #print(pos)
-            dram_index=2*pos[1]-1  if pos[3]>y1/2 else pos[1]
-            #print(dram_index)
+            pos = self.dpos_trans(des_id)
+            # print(pos)
+            dram_index = 2 * pos[1] - 1 if pos[3] > y1 / 2 else pos[1]
+            # print(dram_index)
             if not self.Analytical:
                 yield self.env.process(
                     self.edge_dram_resource[dram_index].access_process(
@@ -530,12 +550,22 @@ class Wafer_Device:
         chunk_size = comm_size / group_size
         # if DEBUG_MODE:
         #        print("ALL_REDUCE task {} start @ {:.3f} ms".format(task_id,self.env.now))
-        #t_last=self.env.now
-        for i in range(group_size-1):
-            event_list=[]
-            for id_idx in range(group_size-1):
-                event_list.append(self.env.process(self.noc_process(chunk_size,group_id[id_idx],group_id[id_idx+1])))
-            event_list.append(self.env.process(self.noc_process(chunk_size,group_id[-1],group_id[0])))
+        t_last = self.env.now
+        for i in range(group_size - 1):
+            event_list = []
+            for id_idx in range(group_size - 1):
+                event_list.append(
+                    self.env.process(
+                        self.noc_process(
+                            chunk_size, group_id[id_idx], group_id[id_idx + 1]
+                        )
+                    )
+                )
+            event_list.append(
+                self.env.process(
+                    self.noc_process(chunk_size, group_id[-1], group_id[0])
+                )
+            )
             yield simpy.AllOf(self.env, event_list)
             # if DEBUG_MODE:
             #    print('Reduce-Scatter {}/{} phase'.format(i+1,group_size-1))
@@ -557,15 +587,22 @@ class Wafer_Device:
             yield simpy.AllOf(self.env, event_list)
             # if DEBUG_MODE:
             #    print('All-Gather {}/{} phase'.format(i+1,group_size-1))
-        #if DEBUG_MODE:
-            #    print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
-        #print("ALL_REDUCE task {} end with {:.3f} ms".format(task_id,self.env.now-t_last))
-        
-    def ALL_2_ALL_process(self,comm_size,group_id:List[int],task_id,DEBUG_MODE=False):
+        # if DEBUG_MODE:
+        #    print("ALL_REDUCE task {} end @ {:.3f} ms".format(task_id,self.env.now))
+        print(
+            "ALL_REDUCE task {} end with {:.3f} ms".format(
+                task_id, self.env.now - t_last
+            )
+        )
+
+    def ALL_2_ALL_process(
+        self, comm_size, group_id: List[int], task_id, DEBUG_MODE=False
+    ):
         # TODO 完成通信原语及其优化
         group_size = len(group_id)
         # print(group_size)
         chunk_size = comm_size / group_size
+        t_last = self.env.now
         for i in range(group_size - 1):
             event_list = []
             for id_idx in range(group_size):
@@ -576,6 +613,11 @@ class Wafer_Device:
                     )
                 )
             yield simpy.AllOf(self.env, event_list)
+        print(
+            "ALL_2_ALL task {} end with {:.3f} ms".format(
+                task_id, self.env.now - t_last
+            )
+        )
 
     def STAGE_PASS_process(
         self,
@@ -699,31 +741,18 @@ class Wafer_Device:
             raise NotImplementedError
 
 
-if __name__ == "__main__":
-    # Debug=True
-    # env = simpy.Environment()
-    # wd=Wafer_Device(env,tile_inter_shape=[2,2],tile_intra_shape=[1,1],tile_intra_noc_bw_GB=150,tile_inter_noc_bw_GB=150*0.8,with_dram_per_tile=True,Analytical=True)
-    """
-    env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
-    env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))
-    env.process(wd.edge_dram_read_process(10,src_id=1,DEBUG_MODE=Debug))
-    env.process(wd.edge_dram_read_process(10,src_id=1,task_id=4,DEBUG_MODE=Debug))
-    env.process(wd.edge_dram_write_process(16,src_id=1,task_id=5,DEBUG_MODE=Debug))
-    env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=6,DEBUG_MODE=Debug))
-    env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=7,DEBUG_MODE=Debug))
-    env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=8,DEBUG_MODE=Debug))
-    env.process(wd.STAGE_PASS_process(10,[0,1,2,3,5],[8,9],'TEST'))
-    """
+def validate_allreduce():
     # NOTE: below is 4 NPUs
     # env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
     comm_sizes = [64, 96, 128, 192, 768, 1536]
+    print(f"&&&&&&&&&&&&&&&--4 GPUs--&&&&&&&&&&&&&&&&&")
     for comm_size in comm_sizes:
         Debug = True
         env = simpy.Environment()
         wd = Wafer_Device(
             env,
-            tile_inter_shape=[2, 2],
-            tile_intra_shape=[1, 1],
+            tile_inter_shape=[1, 1],
+            tile_intra_shape=[2, 2],
             tile_intra_noc_bw_GB=150,
             tile_inter_noc_bw_GB=120,
             with_dram_per_tile=True,
@@ -736,6 +765,7 @@ if __name__ == "__main__":
         )
         env.run(until=10000)
 
+    print(f"&&&&&&&&&&&&&&&--16 GPUs--&&&&&&&&&&&&&&&&&")
     # NOTE: below is 16 NPUs
     comm_sizes = [64, 96, 128, 192, 768, 1536]
     for comm_size in comm_sizes:
@@ -753,8 +783,131 @@ if __name__ == "__main__":
         env.process(
             wd.ALL_REDUCE_process(
                 comm_size=comm_size,
-                group_id=[0, 1, 2, 3, 8, 9, 10, 11, 15, 14, 13, 12, 7, 6, 5, 4],
+                group_id=[0, 1, 2, 3, 4, 5, 6, 7, 15, 14, 13, 12, 11, 10, 9, 8],
                 task_id="ALL_REDUCE_process",
             )
         )
         env.run(until=10000)
+
+
+def validate_congestion():
+    # NOTE: below is 16 NPUs
+    # comm_sizes = [64, 96, 128, 192, 768, 1536]
+    print(f"$$$$$$$$$$$$$$$$Analytical Model$$$$$$$$$$$$$$$$")
+    comm_sizes = [128]
+    for comm_size in comm_sizes:
+        Debug = True
+        env = simpy.Environment()
+        wd = Wafer_Device(
+            env,
+            tile_inter_shape=[1, 2],
+            tile_intra_shape=[2, 4],
+            tile_intra_noc_bw_GB=150,
+            tile_inter_noc_bw_GB=120,
+            with_dram_per_tile=True,
+            Analytical=True,
+        )
+        env.process(
+            wd.ALL_REDUCE_process(
+                comm_size=comm_size,
+                group_id=[0, 1, 2, 3, 4, 5, 6, 7, 15, 14, 13, 12, 11, 10, 9, 8],
+                task_id="ALL_REDUCE_process",
+            )
+        )
+        env.process(
+            wd.ALL_2_ALL_process(
+                comm_size=comm_size,
+                group_id=[0, 1, 2, 3, 4, 5, 6, 7, 15, 14, 13, 12, 11, 10, 9, 8],
+                task_id="ALL_REDUCE_process",
+            )
+        )
+        env.run(until=10000)
+
+    # NOTE: below is 16 NPUs
+    # comm_sizes = [64, 96, 128, 192, 768, 1536]
+    print(f"$$$$$$$$$$$$$$$$Simulator Model$$$$$$$$$$$$$$$$")
+    comm_sizes = [128]
+    for comm_size in comm_sizes:
+        Debug = True
+        env = simpy.Environment()
+        wd = Wafer_Device(
+            env,
+            tile_inter_shape=[1, 2],
+            tile_intra_shape=[2, 4],
+            tile_intra_noc_bw_GB=150,
+            tile_inter_noc_bw_GB=120,
+            with_dram_per_tile=True,
+            Analytical=False,
+        )
+        env.process(
+            wd.ALL_REDUCE_process(
+                comm_size=comm_size,
+                group_id=[0, 1, 2, 3, 4, 5, 6, 7, 15, 14, 13, 12, 11, 10, 9, 8],
+                task_id="ALL_REDUCE_process",
+            )
+        )
+        env.run(until=10000)
+
+
+if __name__ == "__main__":
+    # Debug=True
+    # env = simpy.Environment()
+    # wd=Wafer_Device(env,tile_inter_shape=[2,2],tile_intra_shape=[1,1],tile_intra_noc_bw_GB=150,tile_inter_noc_bw_GB=150*0.8,with_dram_per_tile=True,Analytical=True)
+    """
+    env.process(wd.noc_process(10,src_id=0,des_id=3,task_id=1,DEBUG_MODE=Debug))
+    env.process(wd.noc_process(10,src_id=3,des_id=0,task_id=2,DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_read_process(10,src_id=1,DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_read_process(10,src_id=1,task_id=4,DEBUG_MODE=Debug))
+    env.process(wd.edge_dram_write_process(16,src_id=1,task_id=5,DEBUG_MODE=Debug))
+    env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=6,DEBUG_MODE=Debug))
+    env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=7,DEBUG_MODE=Debug))
+    env.process(wd.noc_process(10,src_id=13,des_id=15,task_id=8,DEBUG_MODE=Debug))
+    env.process(wd.STAGE_PASS_process(10,[0,1,2,3,5],[8,9],'TEST'))
+    """
+    validate_allreduce()
+    # validate_congestion()
+
+    # # NOTE: below is 4 NPUs
+    # # env.process(wd.tile_dram_access_process(0,63,'TEST_3DDRAM',DEBUG_MODE=Debug))
+    # comm_sizes = [64, 96, 128, 192, 768, 1536]
+    # for comm_size in comm_sizes:
+    #     Debug = True
+    #     env = simpy.Environment()
+    #     wd = Wafer_Device(
+    #         env,
+    #         tile_inter_shape=[2, 2],
+    #         tile_intra_shape=[1, 1],
+    #         tile_intra_noc_bw_GB=150,
+    #         tile_inter_noc_bw_GB=120,
+    #         with_dram_per_tile=True,
+    #         Analytical=True,
+    #     )
+    #     env.process(
+    #         wd.ALL_REDUCE_process(
+    #             comm_size=comm_size, group_id=[0, 1, 3, 2], task_id="ALL_REDUCE_process"
+    #         )
+    #     )
+    #     env.run(until=10000)
+
+    # # NOTE: below is 16 NPUs
+    # comm_sizes = [64, 96, 128, 192, 768, 1536]
+    # for comm_size in comm_sizes:
+    #     Debug = True
+    #     env = simpy.Environment()
+    #     wd = Wafer_Device(
+    #         env,
+    #         tile_inter_shape=[1, 2],
+    #         tile_intra_shape=[2, 4],
+    #         tile_intra_noc_bw_GB=150,
+    #         tile_inter_noc_bw_GB=120,
+    #         with_dram_per_tile=True,
+    #         Analytical=True,
+    #     )
+    #     env.process(
+    #         wd.ALL_REDUCE_process(
+    #             comm_size=comm_size,
+    #             group_id=[0, 1, 2, 3,4, 5,6, 7, 15,14,13, 12, 11, 10,9, 8],
+    #             task_id="ALL_REDUCE_process",
+    #         )
+    #     )
+    #     env.run(until=10000)
