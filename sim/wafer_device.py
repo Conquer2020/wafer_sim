@@ -7,7 +7,7 @@ from functools import wraps
 import shutil
 from ML import *
 
-
+# packet: (id, shape, size, meta)
 class Packet:
     def __init__(self, id, shape: List[int], meta_data="test") -> None:
         self.id = id
@@ -55,7 +55,7 @@ class DDR_model:
         self.env = env
         self.access_resource = Resource(self.env, capacity=1)
         self.bandwidth = transfer_rate_M * bit_width / 8 * channel_num
-
+    # NOTE: latency = (size)/bw
     def access_process(self, data_size_MB, task_id=1, write=True, DEBUG_MODE=False):
         with self.access_resource.request() as req:
             yield req
@@ -80,11 +80,11 @@ class dram_model:
         self.write_latency = write_latency_ms
 
         # TODO consider the dram capacity influence for total ml network
-        # @fangjh21.20230602: related to embedding op when ml network is recommoned system like DLRM ,etc.
+        # @fangjh21.20230602: related to embedding op when ml network is recommend system like DLRM ,etc.
         self.capacity = capacity_GB
         self.env = env
         self.access_resource = Resource(self.env, capacity=1)
-
+    # NOTE: latency = size/bw + write_latency or read_latency
     def access_process(self, data_size_MB, task_id=1, write=True, DEBUG_MODE=False):
         with self.access_resource.request() as req:
             yield req
@@ -154,12 +154,13 @@ class Wafer_Device:
             return func(self, *args, **kwargs)
 
         return wrapper
-
+    
+    # NOTE: translate dev_id into [x0, x1, y0, y1]
     def dpos_trans(self, device_id):
-        x0 = self.tile_intra_shape[0]
-        x1 = self.tile_inter_shape[0]
-        y0 = self.tile_intra_shape[1]
-        y1 = self.tile_inter_shape[1]
+        x0 = self.tile_intra_shape[0] # 2
+        x1 = self.tile_inter_shape[0] # 1
+        y0 = self.tile_intra_shape[1] # 4
+        y1 = self.tile_inter_shape[1] # 2
         # i=yi+yj*y0+xi*y1*y0+xj*y0*y1*x0
         # print(x0,x1,y0,y1,device_id)
         xx1 = device_id // (y0 * y1 * x0)
@@ -170,6 +171,7 @@ class Wafer_Device:
         yy0 = tp % y0
         return [xx0, xx1, yy0, yy1]
 
+    # NOTE: given tile group pos1 & pos2 --> get tiles_id: list
     def pos_trans(self, pos_1, pos_2=None):
         # (x1,y1,x0,y0)
         # (x,y)
@@ -207,6 +209,7 @@ class Wafer_Device:
                 tiles_id.append(pos_1[0] * y0 * y1 + pos_1[1])
         return tiles_id
 
+    # NOTE: get device id
     def device(self):
         x0 = self.tile_intra_shape[0]
         x1 = self.tile_inter_shape[0]
@@ -224,6 +227,7 @@ class Wafer_Device:
                             self.device_dist[z].append(i)
         return [i for i in range(x0 * x1 * y0 * y1)]
 
+    # NOTE: create NoC, Edge DRAM (num = x1), tile DRAM
     @wafer_info
     def __create_resource(self):
         x0 = self.tile_intra_shape[0]
@@ -261,6 +265,7 @@ class Wafer_Device:
                 )
             print("tile dram resource is created...")
 
+    # NOTE: get # of hops == |src.x-dst.x| + |src.y-dst.y|
     def Manhattan_hops(self, src_id, dis_id):
         x = self.tile_intra_shape[0] * self.tile_inter_shape[0]
         y = self.tile_inter_shape[1] * self.tile_intra_shape[1]
@@ -271,7 +276,8 @@ class Wafer_Device:
             return (res % y) + (res // y)
         else:
             return (min_id % y) - (max_id % y) + (max_id // y)
-
+    
+    # NOTE: generate manhattan route: (src, src+1, .., dst)
     def route_gen(self, src_id, des_id, DEBUG_MODE=True):
         x = self.tile_intra_shape[0] * self.tile_inter_shape[0]
         y = self.tile_inter_shape[1] * self.tile_intra_shape[1]
@@ -293,6 +299,7 @@ class Wafer_Device:
         #    print('Router_List:{}'.format(list))
         return route_list
 
+    # NOTE: generate communication link id
     def link_gen(self, src_id, des_id, DEBUG_MODE=False):
         x0 = self.tile_intra_shape[0]
         x1 = self.tile_inter_shape[0]
@@ -315,7 +322,8 @@ class Wafer_Device:
             else:
                 raise NotImplemented
         return link_list
-
+    
+    # NOTE: check if inter-tile link
     def is_inter_link(self, link_id):
         x0 = self.tile_intra_shape[0]
         x1 = self.tile_inter_shape[0]
@@ -334,6 +342,7 @@ class Wafer_Device:
             else:
                 return False
 
+    # time: response time * hops + (comm size / bw) + request link time
     def noc_process(self, comm_size_MB, src_id, des_id, task_id=1, DEBUG_MODE=False):
         assert src_id != des_id, "src_id({})!=des_id({})".format(src_id, des_id)
         ListID = self.link_gen(src_id, des_id, DEBUG_MODE)
@@ -348,6 +357,7 @@ class Wafer_Device:
                 else:
                     if first_hop:
                         time_ms += comm_size_MB / self.tile_intra_noc_bw_GB
+                # only diff between ana & sim is request 
                 if not self.Analytical:
                     with self.link_resource[i].request() as req:
                         yield req
@@ -357,6 +367,7 @@ class Wafer_Device:
                 first_hop = False
             break
 
+    # NOTE: NoC proc + data_size/bw + write_latency
     def edge_dram_write_process(
         self, access_size_MB, src_id, task_id="DDR_READ_TEST", DEBUG_MODE=False
     ):
@@ -367,6 +378,7 @@ class Wafer_Device:
         y1 = self.tile_inter_shape[1]
         y = self.tile_intra_shape[1] * self.tile_inter_shape[1]
         row_line = int(src_id / y) + 1
+        # closest tile to DRAM
         des_id = (
             row_line * y - 1
             if (row_line * y - 1 - src_id) < (y / 2)
@@ -446,6 +458,7 @@ class Wafer_Device:
             #    print("task {} end dram read @ {:.3f} ms".format(task_id,self.env.now))
             break
 
+    # NOTE: tile DRAM: data_size/bw + write_latency
     def tile_dram_access_process(
         self,
         access_size_MB,
@@ -471,7 +484,8 @@ class Wafer_Device:
                     + access_size_MB / self.tile_dram_bw_GB
                 )
             break
-
+    
+    # process tile group 
     def tile_dram_group_access_process(
         self,
         access_size_MB,
@@ -487,6 +501,7 @@ class Wafer_Device:
                 )
             )
 
+    # edge DRAM read + NoC, if multicast, comm size = tot/#group, otherwise comm = tot
     def dram_read_group_process(
         self,
         access_size_MB: Union[int, List[int]],
@@ -514,6 +529,7 @@ class Wafer_Device:
             # print("task {} end dram_read_group_process @ {:.3f} ms".format(task_id,self.env.now))
             break
 
+    # if need all gather
     def dram_write_group_process(
         self,
         access_size_MB: Union[int, List[int]],
@@ -538,6 +554,8 @@ class Wafer_Device:
             )
             break
 
+    # all-reduce = reduce-scatter + all-gather = 2 * all-gather
+    # diff between reduce-scatter and all-gather is reciprocal direction
     def ALL_REDUCE_process(
         self, comm_size, group_id: List[int], task_id, DEBUG_MODE=False
     ):
@@ -591,7 +609,7 @@ class Wafer_Device:
                 task_id, self.env.now - t_last
             )
         )
-
+    # all2all comm
     def ALL_2_ALL_process(
         self, comm_size, group_id: List[int], task_id, DEBUG_MODE=False
     ):
@@ -615,7 +633,11 @@ class Wafer_Device:
                 task_id, self.env.now - t_last
             )
         )
-
+    # NOTE: Pass activation or gradient between group
+    # 1. find closest id between group a & b -- (src, dst)
+    # 2. transfer other tile in group a to src -- (i, src)
+    # 3. transfer src to dst -- (src, dst)
+    # 4. transfer dst to other tile in group b -- (dst, j)
     def STAGE_PASS_process(
         self,
         comm_size: Union[int, Packet],
